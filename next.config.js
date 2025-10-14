@@ -4,4 +4,7 @@ module.exports = {
     loader: "custom",
     formats: ["image/avif", "image/webp"],
   },
-};
+  eslint: {
+    dirs: ["lib", "app"],
+  },
+}
