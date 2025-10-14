@@ -1,11 +1,13 @@
 # TDW 1st Mini-Project
+
 [![CI/CD Workflow](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml)
 
-The objective of this first mini-project is to develop a CI/CD pipeline over a Next blog that consumes contents from Contentful CMS. The blog looks like the follow: 
+The objective of this first mini-project is to develop a CI/CD pipeline over a Next blog that consumes contents from Contentful CMS. The blog looks like the follow:
 
 ![blog](readme_assets/image.png)
 
 The project is organized as follows:
+
 ```bash
 .
 ├── app
@@ -28,7 +30,9 @@ The project is organized as follows:
 ```
 
 ## Branches
+
 For this project I'm using a **modified GitFlow** organization where I have the following branches:
+
 - `main`: Default branch, protected. Holds the released, production ready code
 - `dev`: Development branch, protected. Holds the tested, most updated and completed code.
 - `hotfix`: Used to make quick fixes to the main or dev branch.
@@ -38,8 +42,10 @@ The geral flow can be summarized by the following image (without the release bra
 ![git flow](readme_assets/workflow.png)
 
 ## Pipeline overview
+
 [![CI/CD Workflow](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml)
 #todo
+
 ```node
 lefthook(lint + prettier) -> commit -> lefthook (package audit) -> eslint job
                                                                 -> prettier job
