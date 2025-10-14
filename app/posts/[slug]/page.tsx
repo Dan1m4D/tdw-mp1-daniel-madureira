@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { draftMode } from "next/headers";
+import { notFound } from "next/navigation";
 
 import MoreStories from "../../more-stories";
 import Avatar from "../../avatar";
@@ -23,8 +24,15 @@ export default async function PostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const decodedSlug =
+    typeof slug === "string" ? decodeURIComponent(slug) : slug;
   const { isEnabled } = await draftMode();
-  const { post, morePosts } = await getPostAndMorePosts(slug, isEnabled);
+  const { post, morePosts } = await getPostAndMorePosts(decodedSlug, isEnabled);
+
+  if (!post) {
+    // If the post wasn't found (Contentful returned no items), return a 404
+    notFound();
+  }
 
   return (
     <div className="container mx-auto px-5">
