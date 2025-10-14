@@ -113,6 +113,14 @@ export async function getPostAndMorePosts(
     }`,
     preview,
   );
+  // Log helpful debug info when the single-post query returns nothing
+  const foundPost = extractPost(entry);
+  if (!foundPost) {
+    console.warn(
+      `[contentful] No post found for slug="${slug}" preview=${preview} - GraphQL response:`,
+      entry,
+    );
+  }
   const entries = await fetchGraphQL(
     `query {
       postCollection(where: { slug_not_in: "${slug}" }, order: date_DESC, preview: ${
@@ -126,7 +134,7 @@ export async function getPostAndMorePosts(
     preview,
   );
   return {
-    post: extractPost(entry),
+    post: foundPost,
     morePosts: extractPostEntries(entries),
   };
 }
