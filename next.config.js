@@ -7,4 +7,4 @@ module.exports = {
   eslint: {
     dirs: ["lib", "app"],
   },
-}
+};

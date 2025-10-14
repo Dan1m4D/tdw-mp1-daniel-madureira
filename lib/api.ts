@@ -1,6 +1,4 @@
-import type {
-  Post,
-} from "./types";
+import type { Post } from "./types";
 
 const POST_GRAPHQL_FIELDS = `
   slug

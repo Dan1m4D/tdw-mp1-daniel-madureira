@@ -24,7 +24,8 @@ export default async function PostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const decodedSlug = typeof slug === "string" ? decodeURIComponent(slug) : slug;
+  const decodedSlug =
+    typeof slug === "string" ? decodeURIComponent(slug) : slug;
   const { isEnabled } = await draftMode();
   const { post, morePosts } = await getPostAndMorePosts(decodedSlug, isEnabled);
 

@@ -3,7 +3,6 @@
 import Image from "next/image";
 import type { ContentfulImageProps } from "./types";
 
-
 const contentfulLoader = ({ src, width, quality }: ContentfulImageProps) => {
   return `${src}?w=${width}&q=${quality || 75}`;
 };

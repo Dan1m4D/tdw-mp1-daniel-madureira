@@ -19,7 +19,7 @@ export interface CoverImageProps {
 /** Author information */
 export interface Author {
   name: string;
-  picture?: Image ;
+  picture?: Image;
   bio?: string;
 }
 
