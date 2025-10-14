@@ -1,7 +1,8 @@
 import ContentfulImage from "../lib/contentful-image";
 import Link from "next/link";
+import type { CoverImageProps } from "../lib/types";
 
-function cn(...classes: any[]) {
+function cn(...classes: unknown[]) {
   return classes.filter(Boolean).join(" ");
 }
 
@@ -9,11 +10,7 @@ export default function CoverImage({
   title,
   url,
   slug,
-}: {
-  title: string;
-  url: string;
-  slug?: string;
-}) {
+}: Readonly<CoverImageProps>) {
   const image = (
     <ContentfulImage
       alt={`Cover Image for ${title}`}

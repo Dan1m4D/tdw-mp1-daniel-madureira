@@ -1,3 +1,7 @@
+import type {
+  Post,
+} from "./types";
+
 const POST_GRAPHQL_FIELDS = `
   slug
   title
@@ -19,7 +23,18 @@ const POST_GRAPHQL_FIELDS = `
   }
 `;
 
-async function fetchGraphQL(query: string, preview = false): Promise<any> {
+type FetchGraphQLResponse = {
+  data?: {
+    postCollection?: {
+      items?: Post[];
+    };
+  };
+};
+
+async function fetchGraphQL(
+  query: string,
+  preview = false,
+): Promise<FetchGraphQLResponse> {
   return fetch(
     `https://graphql.contentful.com/content/v1/spaces/${process.env.CONTENTFUL_SPACE_ID}`,
     {
@@ -38,19 +53,21 @@ async function fetchGraphQL(query: string, preview = false): Promise<any> {
   ).then((response) => response.json());
 }
 
-function extractPost(fetchResponse: any): any {
+function extractPost(fetchResponse: FetchGraphQLResponse): Post | undefined {
   return fetchResponse?.data?.postCollection?.items?.[0];
 }
 
-function extractPostEntries(fetchResponse: any): any[] {
+function extractPostEntries(fetchResponse: FetchGraphQLResponse): Post[] {
   if (!fetchResponse?.data?.postCollection?.items) {
     console.error("Failed to fetch posts from Contentful:", fetchResponse);
     return [];
   }
-  return fetchResponse.data.postCollection.items;
+  return fetchResponse.data.postCollection.items ?? [];
 }
 
-export async function getPreviewPostBySlug(slug: string | null): Promise<any> {
+export async function getPreviewPostBySlug(
+  slug: string | null,
+): Promise<Post | undefined> {
   const entry = await fetchGraphQL(
     `query {
       postCollection(where: { slug: "${slug}" }, preview: true, limit: 1) {
@@ -64,7 +81,7 @@ export async function getPreviewPostBySlug(slug: string | null): Promise<any> {
   return extractPost(entry);
 }
 
-export async function getAllPosts(isDraftMode: boolean): Promise<any[]> {
+export async function getAllPosts(isDraftMode: boolean): Promise<Post[]> {
   const entries = await fetchGraphQL(
     `query {
       postCollection(where: { slug_exists: true }, order: date_DESC, preview: ${
@@ -83,7 +100,7 @@ export async function getAllPosts(isDraftMode: boolean): Promise<any[]> {
 export async function getPostAndMorePosts(
   slug: string,
   preview: boolean,
-): Promise<any> {
+): Promise<{ post: Post | undefined; morePosts: Post[] }> {
   const entry = await fetchGraphQL(
     `query {
       postCollection(where: { slug: "${slug}" }, preview: ${

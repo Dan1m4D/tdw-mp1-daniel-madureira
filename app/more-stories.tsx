@@ -2,6 +2,7 @@ import Link from "next/link";
 import Avatar from "./avatar";
 import DateComponent from "./date";
 import CoverImage from "./cover-image";
+import type { Post, Image, Author } from "@/lib/types";
 
 function PostPreview({
   title,
@@ -10,18 +11,18 @@ function PostPreview({
   excerpt,
   author,
   slug,
-}: {
+}: Readonly<{
   title: string;
-  coverImage: any;
+  coverImage: Image;
   date: string;
   excerpt: string;
-  author: any;
+  author: Author;
   slug: string;
-}) {
+}>) {
   return (
     <div>
       <div className="mb-5">
-        <CoverImage title={title} slug={slug} url={coverImage.url} />
+        <CoverImage title={title} slug={slug} url={coverImage?.url ?? ""} />
       </div>
       <h3 className="text-3xl mb-3 leading-snug">
         <Link href={`/posts/${slug}`} className="hover:underline">
@@ -32,12 +33,14 @@ function PostPreview({
         <DateComponent dateString={date} />
       </div>
       <p className="text-lg leading-relaxed mb-4">{excerpt}</p>
-      {author && <Avatar name={author.name} picture={author.picture} />}
+      {author?.picture && (
+        <Avatar name={author.name} picture={author.picture} />
+      )}
     </div>
   );
 }
 
-export default function MoreStories({ morePosts }: { morePosts: any[] }) {
+export default function MoreStories({ morePosts }: Readonly<{ morePosts: Post[] }>) {
   return (
     <section>
       <h2 className="mb-8 text-6xl md:text-7xl font-bold tracking-tighter leading-tight">
@@ -47,12 +50,12 @@ export default function MoreStories({ morePosts }: { morePosts: any[] }) {
         {morePosts.map((post) => (
           <PostPreview
             key={post.slug}
-            title={post.title}
-            coverImage={post.coverImage}
-            date={post.date}
-            author={post.author}
+            title={post.title ?? "Untitled"}
+            coverImage={post.coverImage ?? { url: "" }}
+            date={post.date ?? ""}
+            author={post.author ?? { name: "Unknown" }}
             slug={post.slug}
-            excerpt={post.excerpt}
+            excerpt={post.excerpt ?? ""}
           />
         ))}
       </div>
