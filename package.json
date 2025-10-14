@@ -5,7 +5,7 @@
     "build": "next build",
     "start": "next start",
     "setup": "node ./lib/setup.js",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@contentful/rich-text-react-renderer": "^15.17.1",
@@ -27,6 +27,10 @@
     "typescript": "^5.1.6"
   },
   "devDependencies": {
-    "eslint-config-next": "15.5.5"
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.37.0",
+    "eslint": "^9.37.0",
+    "eslint-config-next": "15.5.5",
+    "eslint-config-prettier": "^10.1.8"
   }
 }
