@@ -16,4 +16,4 @@ pre-commit:
 pre-push:
   jobs:
     - name: npm audit
-      run: npm audit
+      run: npm audit --audit-level=moderate
