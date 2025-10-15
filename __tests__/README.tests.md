@@ -333,7 +333,6 @@ The streamlined test suite provides comprehensive coverage of:
 - ✅ Next.js 13+ App Router patterns (async server components)
 - ✅ Visual regression protection (snapshot tests)
 
-
 ## Quick Reference Card
 
 | Task              | Command                                             |

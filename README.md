@@ -74,13 +74,14 @@ The configuration setup for the **Contentful integration** with this project can
 This project includes a comprehensive test suite made with Jest that holds **34 tests** across **12 test suites**, covering unit tests, integration tests, and snapshot tests. The test suite ensures code quality, prevents regressions, and validates both component behavior and visual consistency.
 
 ### Test Statistics
-| Metric | Value |
-|--------|-------|
-| **Total Tests** | 34 passed |
-| **Functional Tests** | 24 (unit + integration) |
-| **Snapshot Tests** | 10 (visual regression) |
-| **Test Duration** | ~3 seconds |
-| **Coverage** | Available via coverage reports |
+
+| Metric               | Value                          |
+| -------------------- | ------------------------------ |
+| **Total Tests**      | 34 passed                      |
+| **Functional Tests** | 24 (unit + integration)        |
+| **Snapshot Tests**   | 10 (visual regression)         |
+| **Test Duration**    | ~3 seconds                     |
+| **Coverage**         | Available via coverage reports |
 
 ### Test Structure
 
@@ -109,7 +110,6 @@ __tests__/
 2. **Page Tests (7)**: Next.js server components and page rendering (Home, Post Detail pages)
 3. **Integration Tests (6)**: Component interactions, page flows, and API integration
 4. **Snapshot Tests (10)**: Visual regression testing for components and pages
-
 
 ### Running Tests
 
