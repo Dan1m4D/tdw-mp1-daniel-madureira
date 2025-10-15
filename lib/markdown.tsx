@@ -21,7 +21,17 @@ function RichTextAsset({
   return null;
 }
 
-export function Markdown({ content }: { content: Content }) {
+export function Markdown({ content }: { readonly content: Content | string }) {
+  // If content is a string, return it as plain text or null
+  if (typeof content === "string") {
+    return <div>{content}</div>;
+  }
+
+  // If content is undefined or doesn't have json property, return null
+  if (!content?.json) {
+    return null;
+  }
+
   return documentToReactComponents(content.json, {
     renderNode: {
       [BLOCKS.EMBEDDED_ASSET]: (node: Node) => (

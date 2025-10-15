@@ -7,7 +7,7 @@ pre-commit:
 
     - name: prettier
       run: npx prettier --write .
-      glob: "*.{js,ts,jsx,tsx,json,css,md}"
+      glob: "*.{js,ts,jsx,tsx,json,css,md,yml,yaml}"
 
     - name: jest
       run: npm run test:coverage
@@ -16,4 +16,4 @@ pre-commit:
 pre-push:
   jobs:
     - name: npm audit
-      run: npm audit
+      run: npm audit --audit-level=moderate
