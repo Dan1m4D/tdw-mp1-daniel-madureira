@@ -1,0 +1,222 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Component Snapshots Avatar matches snapshot 1`] = `
+<div>
+  <div
+    class="flex items-center"
+  >
+    <div
+      class="mr-4 w-12 h-12"
+    >
+      <img
+        alt="John Doe"
+        class="object-cover h-full rounded-full"
+        data-nimg="1"
+        decoding="async"
+        height="48"
+        loading="lazy"
+        src="https://example.com/avatar.jpg?w=96&q=75"
+        srcset="https://example.com/avatar.jpg?w=48&q=75 1x, https://example.com/avatar.jpg?w=96&q=75 2x"
+        style="color: transparent;"
+        width="48"
+      />
+    </div>
+    <div
+      class="text-xl font-bold"
+    >
+      John Doe
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Component Snapshots CoverImage matches snapshot with link 1`] = `
+<div>
+  <div
+    class="sm:mx-0"
+  >
+    <a
+      aria-label="Blog Post Title"
+      href="/posts/blog-post-slug"
+    >
+      <img
+        alt="Cover Image for Blog Post Title"
+        class="shadow-small [object Object]"
+        data-nimg="1"
+        decoding="async"
+        height="1000"
+        src="https://example.com/cover.jpg?w=3840&q=75"
+        srcset="https://example.com/cover.jpg?w=2048&q=75 1x, https://example.com/cover.jpg?w=3840&q=75 2x"
+        style="color: transparent;"
+        width="2000"
+      />
+    </a>
+  </div>
+</div>
+`;
+
+exports[`Component Snapshots MoreStories matches snapshot with posts 1`] = `
+<div>
+  <section>
+    <h2
+      class="mb-8 text-6xl md:text-7xl font-bold tracking-tighter leading-tight"
+    >
+      More Stories
+    </h2>
+    <div
+      class="grid grid-cols-1 md:grid-cols-2 md:gap-x-16 lg:gap-x-32 gap-y-20 md:gap-y-32 mb-32"
+    >
+      <div>
+        <div
+          class="mb-5"
+        >
+          <div
+            class="sm:mx-0"
+          >
+            <a
+              aria-label="First Post"
+              href="/posts/first-post"
+            >
+              <img
+                alt="Cover Image for First Post"
+                class="shadow-small [object Object]"
+                data-nimg="1"
+                decoding="async"
+                height="1000"
+                src="https://example.com/post1.jpg?w=3840&q=75"
+                srcset="https://example.com/post1.jpg?w=2048&q=75 1x, https://example.com/post1.jpg?w=3840&q=75 2x"
+                style="color: transparent;"
+                width="2000"
+              />
+            </a>
+          </div>
+        </div>
+        <h3
+          class="text-3xl mb-3 leading-snug"
+        >
+          <a
+            class="hover:underline"
+            href="/posts/first-post"
+          >
+            First Post
+          </a>
+        </h3>
+        <div
+          class="text-lg mb-4"
+        >
+          <time
+            datetime="2023-01-15"
+          >
+            January 15, 2023
+          </time>
+        </div>
+        <p
+          class="text-lg leading-relaxed mb-4"
+        >
+          This is the first post excerpt
+        </p>
+        <div
+          class="flex items-center"
+        >
+          <div
+            class="mr-4 w-12 h-12"
+          >
+            <img
+              alt="Author One"
+              class="object-cover h-full rounded-full"
+              data-nimg="1"
+              decoding="async"
+              height="48"
+              loading="lazy"
+              src="https://example.com/author1.jpg?w=96&q=75"
+              srcset="https://example.com/author1.jpg?w=48&q=75 1x, https://example.com/author1.jpg?w=96&q=75 2x"
+              style="color: transparent;"
+              width="48"
+            />
+          </div>
+          <div
+            class="text-xl font-bold"
+          >
+            Author One
+          </div>
+        </div>
+      </div>
+      <div>
+        <div
+          class="mb-5"
+        >
+          <div
+            class="sm:mx-0"
+          >
+            <a
+              aria-label="Second Post"
+              href="/posts/second-post"
+            >
+              <img
+                alt="Cover Image for Second Post"
+                class="shadow-small [object Object]"
+                data-nimg="1"
+                decoding="async"
+                height="1000"
+                src="https://example.com/post2.jpg?w=3840&q=75"
+                srcset="https://example.com/post2.jpg?w=2048&q=75 1x, https://example.com/post2.jpg?w=3840&q=75 2x"
+                style="color: transparent;"
+                width="2000"
+              />
+            </a>
+          </div>
+        </div>
+        <h3
+          class="text-3xl mb-3 leading-snug"
+        >
+          <a
+            class="hover:underline"
+            href="/posts/second-post"
+          >
+            Second Post
+          </a>
+        </h3>
+        <div
+          class="text-lg mb-4"
+        >
+          <time
+            datetime="2023-02-20"
+          >
+            February 20, 2023
+          </time>
+        </div>
+        <p
+          class="text-lg leading-relaxed mb-4"
+        >
+          This is the second post excerpt
+        </p>
+        <div
+          class="flex items-center"
+        >
+          <div
+            class="mr-4 w-12 h-12"
+          >
+            <img
+              alt="Author Two"
+              class="object-cover h-full rounded-full"
+              data-nimg="1"
+              decoding="async"
+              height="48"
+              loading="lazy"
+              src="https://example.com/author2.jpg?w=96&q=75"
+              srcset="https://example.com/author2.jpg?w=48&q=75 1x, https://example.com/author2.jpg?w=96&q=75 2x"
+              style="color: transparent;"
+              width="48"
+            />
+          </div>
+          <div
+            class="text-xl font-bold"
+          >
+            Author Two
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+`;
