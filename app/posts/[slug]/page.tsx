@@ -47,27 +47,29 @@ export default async function PostPage({
           {post.title}
         </h1>
         <div className="hidden md:mb-12 md:block">
-          {post.author && (
+          {post.author && post.author.picture && (
             <Avatar name={post.author.name} picture={post.author.picture} />
           )}
         </div>
         <div className="mb-8 sm:mx-0 md:mb-16">
-          <CoverImage title={post.title} url={post.coverImage.url} />
+          {post.coverImage && (
+            <CoverImage title={post.title} url={post.coverImage.url} />
+          )}
         </div>
         <div className="mx-auto max-w-2xl">
           <div className="mb-6 block md:hidden">
-            {post.author && (
+            {post.author && post.author.picture && (
               <Avatar name={post.author.name} picture={post.author.picture} />
             )}
           </div>
           <div className="mb-6 text-lg">
-            <Date dateString={post.date} />
+            {post.date && <Date dateString={post.date} />}
           </div>
         </div>
 
         <div className="mx-auto max-w-2xl">
           <div className="prose">
-            <Markdown content={post.content} />
+            <Markdown content={post.content || ""} />
           </div>
         </div>
       </article>
