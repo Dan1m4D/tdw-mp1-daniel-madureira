@@ -9,6 +9,10 @@ pre-commit:
       run: npx prettier --write .
       glob: "*.{js,ts,jsx,tsx,json,css,md}"
 
+    - name: jest
+      run: npm run test:coverage
+      glob: "*.{js,ts,jsx,tsx}"
+
 pre-push:
   jobs:
     - name: npm audit
