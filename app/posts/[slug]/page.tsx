@@ -52,7 +52,7 @@ export default async function PostPage({
           )}
         </div>
         <div className="mb-8 sm:mx-0 md:mb-16">
-          {post.coverImage && (
+          {post.coverImage?.url && (
             <CoverImage title={post.title} url={post.coverImage.url} />
           )}
         </div>

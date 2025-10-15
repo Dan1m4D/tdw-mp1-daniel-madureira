@@ -7,7 +7,7 @@ pre-commit:
 
     - name: prettier
       run: npx prettier --write .
-      glob: "*.{js,ts,jsx,tsx,json,css,md,yml}"
+      glob: "*.{js,ts,jsx,tsx,json,css,md,yml,yaml}"
 
     - name: jest
       run: npm run test:coverage
