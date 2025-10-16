@@ -1,7 +1,7 @@
 # TDW 1st Mini-Project
 
 [![CI/CD Workflow](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/e30b3b3f-f932-4267-b05e-400b8c52cdb9/deploy-status)](https://app.netlify.com/projects/tdw-mp1-daniel-madureira/deploys)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Dan1m4D/89ec456cc3b23d9e0f07de9431936f3f/raw/coverage.json)
 
 The objective of this first mini-project is to develop a CI/CD pipeline over a Next blog that consumes contents from Contentful CMS. The blog looks like the follow:
 
@@ -57,6 +57,7 @@ The geral flow can be summarized by the following image (without the release bra
 ## Pipeline overview
 
 [![CI/CD Workflow](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Dan1m4D/89ec456cc3b23d9e0f07de9431936f3f/raw/coverage.json)
 
 The CI/CD pipeline is implemented using GitHub Actions and follows industry best practices for performance, reliability, and efficiency.
 
