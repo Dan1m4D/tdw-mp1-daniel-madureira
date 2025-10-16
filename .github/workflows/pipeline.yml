@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, prettier, test]
     if: github.event_name == 'pull_request' && ( github.base_ref == 'main' || github.base_ref == 'dev' )
-    environment: ${{ github.base_ref == 'main' || github.base_ref == 'dev' && 'production' || 'development' }}
+    environment: ${{ github.base_ref == 'main' && 'production' || 'development' }}
 
     steps:
       - name: Checkout repository
