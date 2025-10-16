@@ -9,22 +9,29 @@ on:
     branches:
       - "**"
 
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: ESLint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run ESLint
         run: npm run lint
@@ -32,18 +39,20 @@ jobs:
   prettier:
     name: Prettier
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run Prettier check
         run: npm run prettier:check
@@ -51,22 +60,27 @@ jobs:
   test:
     name: Jest Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run tests
         run: npm run test:coverage
 
       - name: Jest Coverage Comment
+        id: coverage
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
         uses: MishaKav/jest-coverage-comment@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -82,24 +96,48 @@ jobs:
           remove-links-to-lines: false
           report-only-changed-files: false
 
+      - name: Dynamic Badges
+        if: github.ref == 'refs/heads/main'
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 89ec456cc3b23d9e0f07de9431936f3f
+          filename: coverage.json
+          label: Coverage
+          message: ${{ steps.coverage.outputs.coverage }}%
+          color: ${{ steps.coverage.outputs.color }}
+
   build:
     name: Build project
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [lint, prettier, test]
     if: github.event_name == 'pull_request' && ( github.base_ref == 'main' || github.base_ref == 'dev' )
     environment: ${{ github.base_ref == 'main' && 'production' || 'development' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
+
+      - name: Cache Next.js build
+        if: github.base_ref == 'main'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build project
         env:
@@ -110,29 +148,47 @@ jobs:
           CONTENTFUL_REVALIDATE_SECRET: ${{ secrets.CONTENTFUL_REVALIDATE_SECRET }}
         run: npm run build
 
+      - name: Upload build artifacts
+        if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: |
+            .next
+            public
+          retention-days: 1
+
   deploy:
-    name: Deploy to netlify
+    name: Deploy to Netlify
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: production
     needs: build
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Deploy to Production
         run: echo "Deploying to production server..."
 
-      - name: DEPLOY TO NETLIFY
+      - name: Deploy to Netlify
+        id: netlify_deploy
         env:
           CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
           CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
@@ -140,3 +196,32 @@ jobs:
           CONTENTFUL_PREVIEW_SECRET: ${{ secrets.CONTENTFUL_PREVIEW_SECRET }}
           CONTENTFUL_REVALIDATE_SECRET: ${{ secrets.CONTENTFUL_REVALIDATE_SECRET }}
         run: npx netlify deploy --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }} --prod
+
+      - name: Get Deployment Timestamp
+        if: success()
+        id: timestamp
+        run: |
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
+          echo "time=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Update Deployment Badge
+        if: success()
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: b8da1bf6d1551c77df858bcfd3ec7b1d
+          filename: deployment.json
+          label: Deployed
+          message: Successful on ${{ steps.timestamp.outputs.time }}
+          color: brightgreen
+
+      - name: Update Deployment Badge on Failure
+        if: failure()
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: b8da1bf6d1551c77df858bcfd3ec7b1d
+          filename: deployment.json
+          label: Deployment 🚀
+          message: Failed
+          color: red
