@@ -80,7 +80,7 @@ jobs:
 
       - name: Jest Coverage Comment
         id: coverage
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
         uses: MishaKav/jest-coverage-comment@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -126,7 +126,7 @@ jobs:
           cache: "npm"
 
       - name: Cache Next.js build
-        if: github.base_ref == 'main'
+        if: github.base_ref == 'main' 
         uses: actions/cache@v4
         with:
           path: |
@@ -149,7 +149,7 @@ jobs:
         run: npm run build
 
       - name: Upload build artifacts
-        if: github.base_ref == 'main'
+        if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: nextjs-build

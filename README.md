@@ -88,7 +88,7 @@ graph LR
 
 ### Workflows
 
-I developed 2 Github Action workflows:
+I developed 2 Github Actions workflows:
 
 #### 1. **CI/CD Pipeline** (`pipeline.yml`)
 
@@ -210,7 +210,6 @@ This creates a **defense-in-depth** strategy:
 - **Build**: Runs only on pull requests targeting `main` or `dev` branches
 - **Deploy**: Runs only on pull requests targeting `main` branch (after successful build)
 - **Content Update**: Runs on Contentful webhook events (content publish/update)
-- **Deploy**: Runs only on pull requests targeting `main` branch (after successful build)
 
 ## Contentful configuration
 
