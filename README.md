@@ -1,174 +1,130 @@
-# A statically generated blog example using Next.js and Contentful
+# TDW 1st Mini-Project
 
-This example showcases Next.js's [Static Generation](https://nextjs.org/docs/basic-features/pages) feature using [Contentful](https://www.contentful.com/) as the data source.
+[![CI/CD Workflow](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml)
 
-## Demo
+The objective of this first mini-project is to develop a CI/CD pipeline over a Next blog that consumes contents from Contentful CMS. The blog looks like the follow:
 
-### [https://github.com/deca-ua/mp1-template-david/]
+![blog](readme_assets/image.png)
 
-## How to use
-
-Execute
+The project is organized as follows:
 
 ```bash
-npx create-next-app --example cms-contentful cms-contentful-app
-```
-
-## Configuration
-
-### Step 1. Create an account and a space on Contentful
-
-First, [create an account on Contentful](https://www.contentful.com/sign-up/).
-
-After creating an account, create a new empty **space** from the [dashboard](https://app.contentful.com/) and assign to it any name of your liking.
-
-### Step 2. Create a content model
-
-The [content model](https://www.contentful.com/developers/docs/concepts/data-model/) defines the data structures of your application/websites. The structures are flexible and you can tailor them to your needs.
-
-For this example you need to create a content model that defines an author and a post content type. **You can create these two by running a script or by doing it manually** to familiarize yourself with the Contentful user interface.
-
-#### Run a script to create the content model
-
-This project includes a setup script which you can use to set up the content model expected by the source code.
-
-In your Contentful dashboard go to **Settings > General Settings** and copy the **Space ID**.
-
-Next, go to **Settings > CMA tokens** and create a new token by clicking **Create personal access token**. This token has the same access rights as the logged in user. **Do not share it publicly**, you will only use it to set up your space and can delete it afterwards.
-
-With the space ID and management access token at hand run the following command:
-
-```
-npx cross-env CONTENTFUL_SPACE_ID=YOUR_SPACE_ID CONTENTFUL_MANAGEMENT_TOKEN=XXX npm run setup
-```
-
-This command will create the needed content structures and set up your Contentful space ready to use. The output should look as follows:
+.
+├── app
+│   └── [components]
+├── coverage
+│   └── coverage-summary.json
+├── env.example
+├── eslint.config.mjs
+├── jest.config.ts
+├── jest.setup.ts
+├── lefthook.yml
+├── lib
+│   └── [api related files]
+├── next.config.js
+├── next-env.d.ts
+├── package.json
+├── package-lock.json
+├── postcss.config.js
+├── readme_assets
+│   └── [readme images]
+├── README.md
+├── tailwind.config.ts
+├── __tests__
+│   ├── components
+│   ├── integration
+│   ├── pages
+│   ├── snapshots
+│   ├── README.tests.md
+│   └── test-jest.test.tsx
+└── tsconfig.json
 
 ```
-> cms-contentful@1.0.0 setup /Users/stefan.judis/Projects/next.js/examples/cms-contentful
-> node ./contentful/setup.js $CONTENTFUL_SPACE_ID $CONTENTFUL_MANAGEMENT_TOKEN
 
-┌──────────────────────────────────────────────────┐
-│ The following entities are going to be imported: │
-├─────────────────────────────────┬────────────────┤
-│ Content Types                   │ 2              │
-├─────────────────────────────────┼────────────────┤
-│ Editor Interfaces               │ 2              │
-├─────────────────────────────────┼────────────────┤
-│ Locales                         │ 1              │
-├─────────────────────────────────┼────────────────┤
-│ Webhooks                        │ 0              │
-├─────────────────────────────────┼────────────────┤
-│ Entries                         │ 0              │
-├─────────────────────────────────┼────────────────┤
-│ Assets                          │ 0              │
-└─────────────────────────────────┴────────────────┘
- ✔ Validating content-file
- ✔ Initialize client (1s)
- ✔ Checking if destination space already has any content and retrieving it (2s)
- ✔ Apply transformations to source data (1s)
- ✔ Push content to destination space
-   ✔ Connecting to space (1s)
-   ...
-   ...
-   ...
+## Branches
+
+For this project I'm using a **modified GitFlow** organization where I have the following branches:
+
+- `main`: Default branch, protected. Holds the released, production ready code
+- `dev`: Development branch, protected. Holds the tested, most updated and completed code.
+- `hotfix`: Used to make quick fixes to the main or dev branch.
+- `feature\**`: Feature branches. These branches are ulibsed to develop a (set of) feature(s) that when completed and tested are merged into the `dev` branch
+
+The geral flow can be summarized by the following image (without the release branch):
+![git flow](readme_assets/workflow.png)
+
+## Pipeline overview
+
+[![CI/CD Workflow](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml)
+#todo
+
+```node
+lefthook(lint + prettier) -> commit -> lefthook (package audit) -> eslint job
+                                                                -> prettier job
 ```
 
-#### Create the content model manually
+## Contentful configuration
 
-##### Create an `Author` content type
+The configuration setup for the **Contentful integration** with this project can be found in the original readme on the [original repository](https://github.com/TDW-2025/MP1) and the **demo** can be found [here](https://github.com/deca-ua/mp1-template-david/)
 
-From your contentful space, go to **Content model** and add a new content type:
+## Testing
 
-- Give it the **Name** `Author`, the **Api Identifier** should be `author`
+### Overview
 
-Once the content model is saved, add these fields (you don't have to modify the settings unless specified):
+This project includes a comprehensive test suite made with Jest that holds **34 tests** across **12 test suites**, covering unit tests, integration tests, and snapshot tests. The test suite ensures code quality, prevents regressions, and validates both component behavior and visual consistency.
 
-- `name` - **Text** field (type **short text**). **Field ID** should be set to `name`
-- `picture` - **Media** field (type **one file**). **Field ID** should be set to `picture`
+### Test Statistics
 
-Save the content type and continue.
+| Metric               | Value                          |
+| -------------------- | ------------------------------ |
+| **Total Tests**      | 34 passed                      |
+| **Functional Tests** | 24 (unit + integration)        |
+| **Snapshot Tests**   | 10 (visual regression)         |
+| **Test Duration**    | ~3 seconds                     |
+| **Coverage**         | Available via coverage reports |
 
-##### Create a `post` type
-
-From your contentful space, go to **Content model** and add another content type:
-
-- Give it the **Name** `Post`, the **Api Identifier** should be `post`
-
-Next, add these fields (you don't have to modify the settings unless specified):
-
-- `title` - **Text** field (type **short text**)
-- `content` - **Rich text** field
-- `excerpt` - **Text** field (type **Long text, full-text search**)
-- `coverImage` - **Media** field (type **one file**)
-- `date` - **Date and time** field
-- `slug` - **Text** field. You can optionally go to the settings of this field, and under **Appearance**, select **Slug** to display it as a slug of the `title` field.
-- `author` - **Reference** field (type **one reference**)
-
-Save the content type and continue.
-
-### Step 3. Validate your content model
-
-After setting up the content model (either manually or by running `npm run setup` or `yarn setup`), it should look as follows.
-
-**Content model overview**
-
-![Content model overview](https://github.com/vercel/next.js/assets/9113740/d3f76907-7046-4d94-b285-eb89b87aa223)
-
-### Step 4. Populate Content
-
-Go to the **Content** section in your space, then click on **Add entry** and select the **Author** content type:
-
-- You just need **1 author entry**.
-- Use dummy data for the text.
-- For the image, you can download one from [Unsplash](https://unsplash.com/).
-
-Next, create another entry with the content type **Post**:
-
-- We recommend creating at least **2 post entries**.
-- Use dummy data for the text.
-- For images, you can download them from [Unsplash](https://unsplash.com/).
-- Pick the **author** you created earlier.
-
-**Important:** For each entry and asset, you need to click on **Publish**. If not, the entry will be in draft state.
-
-![Published content entry](https://github.com/vercel/next.js/assets/9113740/e1b4a3fe-45f4-4851-91db-8908d3ca18e9)
-
-### Step 5. Set up environment variables
-
-From your contentful space, go to **Settings > API keys**. There will be an example Content delivery / preview token - you can use these API keys. (You may also create a new key.)
-
-Next, copy the `.env.local.example` file in this directory to `.env.local` (which will be ignored by Git):
+### Test Structure
 
 ```bash
-cp .env.local.example .env.local
+__tests__/
+├── components/              # Component unit tests
+│   ├── avatar.test.tsx
+│   ├── cover-image.test.tsx
+│   ├── date.test.tsx
+│   ├── layout.test.tsx
+│   └── more-stories.test.tsx
+├── pages/                   # Page-level testsmd
+│   ├── home-page.test.tsx
+│   └── app-page.test.tsx
+├── integration/             # Integration tests
+│   ├── component-integration.test.tsx
+│   └── page-flow.test.tsx
+└── snapshots/               # Snapshot tests
+    ├── component-snapshots.test.tsx
+    └── page-snapshots.test.tsx
 ```
 
-Then set each variable on `.env.local`:
+### Test Categories
 
-- `CONTENTFUL_SPACE_ID` should be the **Space ID** field of your API Key
-- `CONTENTFUL_ACCESS_TOKEN` should be the **[Content Delivery API](https://www.contentful.com/developers/docs/references/content-delivery-api/) - access token** field of your API key
-- `CONTENTFUL_PREVIEW_ACCESS_TOKEN` should be the **[Content Preview API](https://www.contentful.com/developers/docs/references/content-preview-api/) - access token** field of your API key
-- `CONTENTFUL_PREVIEW_SECRET` should be any value you want. It must be URL friendly as the dashboard will send it as a query parameter to enable Next.js Draft Mode
-- - `CONTENTFUL_REVALIDATE_SECRET` should be any value you want. This will be the value you pass in as a secret header from the Contentful Webhook settings to use **[On-Demand Revalidation](https://vercel.com/docs/concepts/next.js/incremental-static-regeneration#on-demand-revalidation)**
+1. **Component Unit Tests (15)**: Individual component testing (Avatar, Date, CoverImage, MoreStories, Layout)
+2. **Page Tests (7)**: Next.js server components and page rendering (Home, Post Detail pages)
+3. **Integration Tests (6)**: Component interactions, page flows, and API integration
+4. **Snapshot Tests (10)**: Visual regression testing for components and pages
 
-Your `.env.local` file should look like this:
+### Running Tests
 
 ```bash
-CONTENTFUL_SPACE_ID=...
-CONTENTFUL_ACCESS_TOKEN=...
-CONTENTFUL_PREVIEW_ACCESS_TOKEN=...
-CONTENTFUL_PREVIEW_SECRET=...
-CONTENTFUL_REVALIDATE_SECRET=...
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Update snapshots (after intentional UI changes)
+npm test -- -u
 ```
 
-### Step 6. Run Next.js in development mode
-
-```bash
-npm install
-npm run dev
-
-
-
-Your blog should be up and running on [http://localhost:3000](http://localhost:3000)! If it doesn't work, post on [GitHub discussions](https://github.com/vercel/next.js/discussions).
-```
+For detailed test documentation, including all test cases and mocking patterns, see [the test suit docs](__tests__/README.tests.md).

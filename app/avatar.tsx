@@ -1,11 +1,12 @@
 import ContentfulImage from "@/lib/contentful-image";
+import type { Image } from "../lib/types";
 
 export default function Avatar({
   name,
   picture,
 }: {
-  name: string;
-  picture: any;
+  readonly name: string;
+  readonly picture: Image;
 }) {
   return (
     <div className="flex items-center">
