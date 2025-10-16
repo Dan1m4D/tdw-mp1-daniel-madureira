@@ -9,22 +9,29 @@ on:
     branches:
       - "**"
 
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: ESLint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run ESLint
         run: npm run lint
@@ -32,18 +39,20 @@ jobs:
   prettier:
     name: Prettier
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run Prettier check
         run: npm run prettier:check
@@ -51,22 +60,26 @@ jobs:
   test:
     name: Jest Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run tests
         run: npm run test:coverage
 
       - name: Jest Coverage Comment
+        if: github.event_name == 'pull_request'
         uses: MishaKav/jest-coverage-comment@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -85,21 +98,34 @@ jobs:
   build:
     name: Build project
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [lint, prettier, test]
     if: github.event_name == 'pull_request' && ( github.base_ref == 'main' || github.base_ref == 'dev' )
     environment: ${{ github.base_ref == 'main' && 'production' || 'development' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
+
+      - name: Cache Next.js build
+        if: github.base_ref == 'main'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build project
         env:
@@ -110,29 +136,46 @@ jobs:
           CONTENTFUL_REVALIDATE_SECRET: ${{ secrets.CONTENTFUL_REVALIDATE_SECRET }}
         run: npm run build
 
+      - name: Upload build artifacts
+        if: github.base_ref == 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: |
+            .next
+            public
+          retention-days: 1
+
   deploy:
-    name: Deploy to netlify
+    name: Deploy to Netlify
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: production
     needs: build
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Deploy to Production
         run: echo "Deploying to production server..."
 
-      - name: DEPLOY TO NETLIFY
+      - name: Deploy to Netlify
         env:
           CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
           CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
