@@ -8,6 +8,7 @@ import MoreStories from "./more-stories";
 
 import { getAllPosts } from "@/lib/api";
 import { CMS_NAME, CMS_URL } from "@/lib/constants";
+import type { Post } from "@/lib/types";
 
 function Intro() {
   return (
@@ -29,7 +30,7 @@ function Intro() {
           className="underline hover:text-success duration-200 transition-colors"
         >
           {CMS_NAME}
-        </a>
+        </a>{" "}
         .
       </h2>
     </section>
@@ -43,18 +44,13 @@ function HeroPost({
   excerpt,
   author,
   slug,
-}: {
-  title: string;
-  coverImage: any;
-  date: string;
-  excerpt: string;
-  author: any;
-  slug: string;
-}) {
+}: Readonly<Post>) {
   return (
     <section>
       <div className="mb-8 md:mb-16">
-        <CoverImage title={title} slug={slug} url={coverImage.url} />
+        {coverImage && (
+          <CoverImage title={title} slug={slug} url={coverImage.url} />
+        )}
       </div>
       <div className="md:grid md:grid-cols-2 md:gap-x-16 lg:gap-x-8 mb-20 md:mb-28">
         <div>
@@ -64,12 +60,14 @@ function HeroPost({
             </Link>
           </h3>
           <div className="mb-4 md:mb-0 text-lg">
-            <Date dateString={date} />
+            {date && <Date dateString={date} />}
           </div>
         </div>
         <div>
           <p className="text-lg leading-relaxed mb-4">{excerpt}</p>
-          {author && <Avatar name={author.name} picture={author.picture} />}
+          {author?.picture && (
+            <Avatar name={author.name} picture={author.picture} />
+          )}
         </div>
       </div>
     </section>
@@ -79,7 +77,7 @@ function HeroPost({
 export default async function Page() {
   const { isEnabled } = await draftMode();
   const allPosts = await getAllPosts(isEnabled);
-  
+
   if (!allPosts || allPosts.length === 0) {
     return (
       <div className="container mx-auto px-5">
@@ -88,7 +86,7 @@ export default async function Page() {
       </div>
     );
   }
-  
+
   const heroPost = allPosts[0];
   const morePosts = allPosts.slice(1);
 

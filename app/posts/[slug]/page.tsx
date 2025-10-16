@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { draftMode } from "next/headers";
+import { notFound } from "next/navigation";
 
 import MoreStories from "../../more-stories";
 import Avatar from "../../avatar";
@@ -23,8 +24,15 @@ export default async function PostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const decodedSlug =
+    typeof slug === "string" ? decodeURIComponent(slug) : slug;
   const { isEnabled } = await draftMode();
-  const { post, morePosts } = await getPostAndMorePosts(slug, isEnabled);
+  const { post, morePosts } = await getPostAndMorePosts(decodedSlug, isEnabled);
+
+  if (!post) {
+    // If the post wasn't found (Contentful returned no items), return a 404
+    notFound();
+  }
 
   return (
     <div className="container mx-auto px-5">
@@ -39,27 +47,29 @@ export default async function PostPage({
           {post.title}
         </h1>
         <div className="hidden md:mb-12 md:block">
-          {post.author && (
+          {post.author && post.author.picture && (
             <Avatar name={post.author.name} picture={post.author.picture} />
           )}
         </div>
         <div className="mb-8 sm:mx-0 md:mb-16">
-          <CoverImage title={post.title} url={post.coverImage.url} />
+          {post.coverImage?.url && (
+            <CoverImage title={post.title} url={post.coverImage.url} />
+          )}
         </div>
         <div className="mx-auto max-w-2xl">
           <div className="mb-6 block md:hidden">
-            {post.author && (
+            {post.author && post.author.picture && (
               <Avatar name={post.author.name} picture={post.author.picture} />
             )}
           </div>
           <div className="mb-6 text-lg">
-            <Date dateString={post.date} />
+            {post.date && <Date dateString={post.date} />}
           </div>
         </div>
 
         <div className="mx-auto max-w-2xl">
           <div className="prose">
-            <Markdown content={post.content} />
+            <Markdown content={post.content || ""} />
           </div>
         </div>
       </article>
