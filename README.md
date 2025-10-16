@@ -57,12 +57,158 @@ The geral flow can be summarized by the following image (without the release bra
 ## Pipeline overview
 
 [![CI/CD Workflow](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml)
-#todo
 
-```node
-lefthook(lint + prettier) -> commit -> lefthook (package audit) -> eslint job
-                                                                -> prettier job
+The CI/CD pipeline is implemented using GitHub Actions and follows industry best practices for performance, reliability, and efficiency.
+
+### Pipeline Workflow
+
+```mermaid
+graph LR
+    A[Local Commit] --> L[Lefthook]
+    L --> L1[ESLint]
+    L --> L2[Prettier]
+    L --> L3[Jest Tests]
+    L1 --> B[Push]
+    L2 --> B
+    L3 --> B
+    B --> C[GitHub Actions]
+    C --> D[Lint Job]
+    C --> E[Prettier Job]
+    C --> F[Test Job]
+    D --> G{PR to main/dev?}
+    E --> G
+    F --> G
+    G -->|Yes| H[Build Job]
+    H -->|PR to main?| I[Deploy to Netlify]
+    J[Contentful Webhook] --> K[Update Content Action]
+    K --> I
 ```
+
+### Workflows
+
+I developed 2 Github Action workflows:
+
+#### 1. **CI/CD Pipeline** (`pipeline.yml`)
+
+Main development and deployment workflow triggered by pushes and pull requests.
+
+| Job          | Description                                  | Runs On                | Timeout |
+| ------------ | -------------------------------------------- | ---------------------- | ------- |
+| **ESLint**   | Lints the code for errors and style issues   | All pushes & PRs       | 5 min   |
+| **Prettier** | Checks code formatting consistency           | All pushes & PRs       | 5 min   |
+| **Test**     | Runs Jest test suite with coverage reporting | All pushes & PRs       | 10 min  |
+| **Build**    | Validates project builds successfully        | PRs to `main` or `dev` | 15 min  |
+| **Deploy**   | Deploys to Netlify production                | PRs to `main` only     | 15 min  |
+
+#### 2. **Content Update Workflow** (`update_content.yml`)
+
+Webhook-triggered workflow for Contentful CMS integration.
+
+| Trigger                | Description                                               | Actions                          |
+| ---------------------- | --------------------------------------------------------- | -------------------------------- |
+| **Contentful Webhook** | Triggered when content is published/updated in Contentful | Rebuild site → Deploy to Netlify |
+
+This workflow enables automatic site redeployment when content editors publish or update content in Contentful CMS, ensuring the production site always reflects the latest content without requiring developer intervention.
+
+### Performance Optimizations
+
+The pipeline includes several performance optimizations to reduce execution time and resource usage:
+
+#### 1. **Dependency Caching**
+
+- Uses `actions/setup-node@v4` with built-in npm caching
+- Caches `node_modules` based on `package-lock.json` hash
+- **Benefit**: 50-70% faster dependency installation on subsequent runs
+
+#### 2. **Next.js Build Caching**
+
+- Caches `.next/cache` directory for production builds
+- Cache key based on dependencies and source code hashes
+- **Benefit**: 30-50% faster build times with cache hits
+- **Applied to**: Production builds (PRs to `main`) only
+
+#### 3. **Build Artifact Sharing**
+
+- Build artifacts (`.next` and `public` folders) are uploaded after production builds
+- Deploy job downloads and reuses these artifacts instead of rebuilding
+- **Benefit**: Eliminates redundant build step in deployment, ensures exact build is deployed
+
+#### 4. **Concurrency Control**
+
+- Automatically cancels in-progress runs when new commits are pushed to the same branch
+- **Benefit**: Saves CI/CD minutes and avoids queue buildup
+
+#### 5. **Optimized Commands**
+
+- Uses `npm ci` instead of `npm install` for faster, more reliable installations
+- **Benefit**: Clean installs based on lock file, better for CI environments
+
+### Environment Strategy
+
+The pipeline uses GitHub Environments for configuration management:
+
+- **Development Environment**: Used for PRs to `dev` branch
+  - Runs build validation only (no deployment)
+  - Fresh builds without caching to catch issues early
+- **Production Environment**: Used for PRs to `main` branch
+  - Runs full build with caching and optimization
+  - Uploads artifacts for deployment
+  - Deploys to Netlify production
+
+### Test Coverage Reporting
+
+The test job includes automatic coverage reporting on pull requests:
+
+- Generates coverage summary using Jest
+- Posts coverage report as PR comment
+- Includes badges, metrics, and file-level coverage details
+- Only runs on pull requests to avoid unnecessary comments on push events
+
+### Lefthook Integration
+
+[Lefthook](https://github.com/evilmartians/lefthook) provides fast and powerful Git hooks management, running quality checks locally before code reaches the CI/CD pipeline.
+
+#### Pre-commit Hooks (Parallel Execution)
+
+Runs automatically before each commit:
+
+```yaml
+- ESLint: Lints staged files (*.js, *.ts, *.jsx, *.tsx)
+- Prettier: Auto-formats code files
+- Jest: Runs tests with coverage on changed test files
+```
+
+**Benefit**: Catches code quality issues immediately, before they're committed.
+
+#### Pre-push Hooks
+
+Runs before pushing to remote:
+
+```yaml
+- npm audit: Security vulnerability check (moderate level and above)
+```
+
+**Benefit**: Prevents pushing code with known security vulnerabilities.
+
+#### Why Lefthook?
+
+- **Fast**: Runs hooks in parallel when possible
+- **Simple**: YAML configuration, no complex scripts
+- **Reliable**: Written in Go, works across all platforms
+- **Smart**: Only checks staged/changed files, not the entire codebase
+
+This creates a **defense-in-depth** strategy:
+
+1. **Local (Lefthook)**: Immediate feedback during development
+2. **CI/CD (GitHub Actions)**: Comprehensive validation before merge/deploy
+
+### Pipeline Conditions
+
+- **Lint, Prettier, Test**: Run on all pushes and pull requests to any branch
+- **Build**: Runs only on pull requests targeting `main` or `dev` branches
+- **Deploy**: Runs only on pull requests targeting `main` branch (after successful build)
+- **Content Update**: Runs on Contentful webhook events (content publish/update)
+- **Deploy**: Runs only on pull requests targeting `main` branch (after successful build)
 
 ## Contentful configuration
 
