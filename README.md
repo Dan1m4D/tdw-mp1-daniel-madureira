@@ -94,7 +94,6 @@ graph LR
   M[Scheduled Cron Job] --> K1
 ```
 
-
 ### Workflows
 
 I developed 2 Github Actions workflows:
@@ -121,6 +120,7 @@ Webhook and schedule-triggered workflow for Contentful CMS integration.
 | **Scheduled Cron Job** | Runs daily at midnight UTC (`0 0 * * *`)                  | Rebuild site → Deploy to Netlify |
 
 This workflow enables automatic site redeployment through two mechanisms:
+
 1. **Immediate updates**: When content editors publish or update content in Contentful CMS
 2. **Scheduled rebuilds**: Daily automatic rebuilds to ensure content freshness and catch any missed webhook events
 
