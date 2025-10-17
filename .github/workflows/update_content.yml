@@ -34,6 +34,7 @@ jobs:
         run: npm run build
 
       - name: Deploy to Netlify
+        id: netlify_deploy
         env:
           CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
           CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
@@ -41,3 +42,32 @@ jobs:
           CONTENTFUL_PREVIEW_SECRET: ${{ secrets.CONTENTFUL_PREVIEW_SECRET }}
           CONTENTFUL_REVALIDATE_SECRET: ${{ secrets.CONTENTFUL_REVALIDATE_SECRET }}
         run: npx netlify deploy --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }} --prod
+
+      - name: Get Deployment Timestamp
+        if: success()
+        id: timestamp
+        run: |
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
+          echo "time=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Update Deployment Badge
+        if: success()
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: b8da1bf6d1551c77df858bcfd3ec7b1d
+          filename: deployment.json
+          label: Deployment 🚀
+          message: Successful on ${{ steps.timestamp.outputs.time }}
+          color: brightgreen
+
+      - name: Update Deployment Badge on Failure
+        if: failure()
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: b8da1bf6d1551c77df858bcfd3ec7b1d
+          filename: deployment.json
+          label: Deployment 🚀
+          message: Failed
+          color: red

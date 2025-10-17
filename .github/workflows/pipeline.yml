@@ -56,6 +56,27 @@ jobs:
       - name: Run Prettier check
         run: npm run prettier:check
 
+  typecheck:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+
   test:
     name: Jest Tests
     runs-on: ubuntu-latest
@@ -110,7 +131,7 @@ jobs:
     name: Build project
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [lint, prettier, test]
+    needs: [lint, prettier, typecheck, test]
     if: github.event_name == 'pull_request' && ( github.base_ref == 'main' || github.base_ref == 'dev' )
     environment: ${{ github.base_ref == 'main' && 'production' || 'development' }}
 
@@ -192,7 +213,7 @@ jobs:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: b8da1bf6d1551c77df858bcfd3ec7b1d
           filename: deployment.json
-          label: Deployed
+          label: Deployment 🚀
           message: Successful on ${{ steps.timestamp.outputs.time }}
           color: brightgreen
 

@@ -66,28 +66,34 @@ The CI/CD pipeline is implemented using GitHub Actions and follows industry best
 
 ```mermaid
 graph LR
-    M1[ESlint] --> N
-    M2[Prettier Formatter] --> N
-    N[Local Pre-Commit] --> A
-    A[Local Commit] --> L[Lefthook]
-    L --> L1[ESLint Checker]
-    L --> L2[Prettier]
-    L --> L3[Jest Tests]
-    L1 --> B[Push]
-    L2 --> B
-    L3 --> B
-    B --> C[GitHub Actions]
-    C --> D[Lint Job]
-    C --> E[Prettier Job]
-    C --> F[Test Job]
-    D --> G{PR to main/dev?}
-    E --> G
-    F --> G
-    G -->|Yes| H[Build Job]
-    H -->|PR to main?| I[Deploy to Netlify]
-    J[Contentful Webhook] --> K[Update Content Action]
-    K --> I
+  A[Local Commit] --> L[Lefthook Pre-commit]
+  L --> L1[ESLint on staged files]
+  L --> L2[Prettier format]
+  L --> L3[Jest on changed tests]
+  L1 --> B[Push to Remote]
+  L2 --> B
+  L3 --> B
+  B --> L4[Lefthook Pre-push]
+  L4 --> L5[npm audit security check]
+  L5 --> C[GitHub Actions]
+  C --> D[ESLint Job]
+  C --> E[Prettier Job]
+  C --> F[Test Job with Coverage]
+  D --> G{PR to main/dev?}
+  E --> G
+  F --> G
+  G -->|Yes| H[Build Job]
+  G -->|No| END[End]
+  H -->|PR to main?| I[Deploy Job]
+  H -->|PR to dev?| END
+  I --> I1[Download Build Artifacts]
+  I1 --> I2[Deploy to Netlify]
+  J[Contentful CMS Update] --> K[Content Update Webhook]
+  K --> K1[Rebuild Site]
+  K1 --> I2
+  M[Scheduled Cron Job] --> K1
 ```
+
 
 ### Workflows
 
@@ -107,13 +113,18 @@ Main development and deployment workflow triggered by pushes and pull requests.
 
 #### 2. **Content Update Workflow** (`update_content.yml`)
 
-Webhook-triggered workflow for Contentful CMS integration.
+Webhook and schedule-triggered workflow for Contentful CMS integration.
 
 | Trigger                | Description                                               | Actions                          |
 | ---------------------- | --------------------------------------------------------- | -------------------------------- |
 | **Contentful Webhook** | Triggered when content is published/updated in Contentful | Rebuild site → Deploy to Netlify |
+| **Scheduled Cron Job** | Runs daily at midnight UTC (`0 0 * * *`)                  | Rebuild site → Deploy to Netlify |
 
-This workflow enables automatic site redeployment when content editors publish or update content in Contentful CMS, ensuring the production site always reflects the latest content without requiring developer intervention.
+This workflow enables automatic site redeployment through two mechanisms:
+1. **Immediate updates**: When content editors publish or update content in Contentful CMS
+2. **Scheduled rebuilds**: Daily automatic rebuilds to ensure content freshness and catch any missed webhook events
+
+Both triggers ensure the production site always reflects the latest content without requiring developer intervention.
 
 ### Performance Optimizations
 
