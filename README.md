@@ -66,8 +66,11 @@ The CI/CD pipeline is implemented using GitHub Actions and follows industry best
 
 ```mermaid
 graph LR
+    M1[ESlint] --> N
+    M2[Prettier Formatter] --> N
+    N[Local Pre-Commit] --> A
     A[Local Commit] --> L[Lefthook]
-    L --> L1[ESLint]
+    L --> L1[ESLint Checker]
     L --> L2[Prettier]
     L --> L3[Jest Tests]
     L1 --> B[Push]
