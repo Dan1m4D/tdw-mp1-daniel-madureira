@@ -4,7 +4,7 @@
 # Global variables
 variables:
   NODE_VERSION: "22"
-  
+
 # Define stages
 stages:
   - audit
@@ -239,10 +239,10 @@ smoke-test-production:
   script:
     - |
       echo "Testing $PRODUCTION_SITE_URL"
-      
+
       # Check if site returns 200 OK
       HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
-      
+
       if [ "$HTTP_CODE" -eq 200 ]; then
         echo "✅ Site is up! HTTP Status: $HTTP_CODE"
       else
@@ -254,7 +254,7 @@ smoke-test-production:
       echo "Testing homepage..."
       curl -f -s "$PRODUCTION_SITE_URL" > /dev/null || { echo "❌ Homepage failed"; exit 1; }
       echo "✅ Homepage is accessible"
-      
+
       # Check if page contains expected content
       CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
       if echo "$CONTENT" | grep -q "Blog"; then
