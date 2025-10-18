@@ -77,11 +77,12 @@ graph LR
   B --> L4[Lefthook Pre-push]
   L4 --> L5[npm audit security check]
   L5 --> C[GitHub Actions]
-  C --> D[ESLint Job]
-  C --> E[Prettier Job]
-  C --> TC[TypeCheck Job]
-  C --> F[Test Job with Coverage]
-  C --> SC[SonarCloud Job]
+  C --> PV[Package Audit]
+  PV --> D[ESLint Job]
+  PV --> E[Prettier Job]
+  PV --> TC[TypeCheck Job]
+  PV --> F[Test Job with Coverage]
+  PV --> SC[SonarCloud Job]
   D --> G{PR to main/dev?}
   E --> G
   TC --> G
@@ -107,16 +108,17 @@ I developed 2 Github Actions workflows:
 
 Main development and deployment workflow triggered by pushes and pull requests.
 
-| Job            | Description                                  | Runs On                | Timeout |
-| -------------- | -------------------------------------------- | ---------------------- | ------- |
-| **ESLint**     | Lints the code for errors and style issues   | All pushes & PRs       | 5 min   |
-| **Prettier**   | Checks code formatting consistency           | All pushes & PRs       | 5 min   |
-| **TypeCheck**  | TypeScript type checking with tsc --noEmit   | All pushes & PRs       | 5 min   |
-| **Test**       | Runs Jest test suite with coverage reporting | All pushes & PRs       | 10 min  |
-| **SonarCloud** | Code quality and security analysis           | All pushes & PRs       | 10 min  |
-| **Build**      | Validates project builds successfully        | PRs to `main` or `dev` | 15 min  |
-| **Deploy**     | Deploys to Netlify production                | PRs to `main` only     | 15 min  |
-| **Smoke Test** | Verifies deployed site is accessible         | After deploy to `main` | 5 min   |
+| Job           | Description                                              | When                   | Timeout |
+| ------------- | -------------------------------------------------------- | ---------------------- | ------- |
+| Package Audit | Runs `npm audit` to check for dependency vulnerabilities | All pushes & PRs       | 5 min   |
+| ESLint        | Lints code for errors and style violations               | All pushes & PRs       | 10 min  |
+| Prettier      | Checks code formatting                                   | All pushes & PRs       | 10 min  |
+| TypeCheck     | Validates TypeScript types with `tsc --noEmit`           | All pushes & PRs       | 10 min  |
+| Test          | Runs Jest test suite with coverage                       | All pushes & PRs       | 10 min  |
+| SonarCloud    | Analyzes code quality and security                       | All pushes & PRs       | 10 min  |
+| Build         | Validates Next.js build process                          | PRs to `main` or `dev` | 15 min  |
+| Deploy        | Deploys to Netlify production                            | PRs to `main`          | 15 min  |
+| Smoke Test    | Verifies deployment is live and accessible               | After deployment       | 5 min   |
 
 #### 2. **Content Update Workflow** (`update_content.yml`)
 
@@ -136,7 +138,15 @@ Both triggers ensure the production site always reflects the latest content with
 
 ### Quality Gates
 
-The pipeline enforces multiple quality gates that run in parallel before allowing deployment:
+The pipeline enforces multiple quality gates that run sequentially and in parallel before allowing deployment:
+
+#### **Package Audit (Security Gate)**
+
+- **First gate**: Runs before all other quality checks
+- Executes `npm audit --audit-level=moderate` to detect dependency vulnerabilities
+- Blocks the pipeline if moderate or higher severity vulnerabilities are found
+- Uses clean install (`npm ci`) to ensure lock file consistency
+- **Benefit**: Prevents building or deploying code with known security issues
 
 #### **TypeScript Type Checking**
 
@@ -160,7 +170,7 @@ The pipeline enforces multiple quality gates that run in parallel before allowin
 - Verifies critical content is present
 - Fails the pipeline if the site is down or broken
 
-These gates ensure that only high-quality, type-safe, and verified code reaches production.
+These gates ensure that only high-quality, type-safe, secure, and verified code reaches production.
 
 ### Performance Optimizations
 
@@ -251,7 +261,8 @@ This creates a **defense-in-depth** strategy:
 
 ### Pipeline Conditions
 
-- **ESLint, Prettier, TypeCheck, Test, SonarCloud**: Run on all pushes and pull requests to any branch
+- **Package Audit**: Runs on all pushes and pull requests to any branch (first gate before any quality checks)
+- **ESLint, Prettier, TypeCheck, Test, SonarCloud**: Run on all pushes and pull requests to any branch (after Package Audit passes)
 - **Build**: Runs only on pull requests targeting `main` or `dev` branches (after all quality gates pass)
 - **Deploy**: Runs only on pull requests targeting `main` branch (after successful build)
 - **Smoke Test**: Runs after deployment to `main` to verify site accessibility

@@ -71,3 +71,38 @@ jobs:
           label: Deployment 🚀
           message: Failed
           color: red
+
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: redeploy
+    timeout-minutes: 5
+
+    steps:
+      - name: Check if site is accessible
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://tdw-mp1-daniel-madureira.tdw-mctw.pt)
+          if [ "$response" -ne 200 ]; then
+            echo "❌ Site returned HTTP $response instead of 200"
+            exit 1
+          fi
+          echo "✅ Site is accessible (HTTP 200)"
+
+      - name: Validate homepage content
+        run: |
+          content=$(curl -s https://tdw-mp1-daniel-madureira.tdw-mctw.pt)
+          if echo "$content" | grep -q "Blog"; then
+            echo "✅ Homepage content is valid"
+          else
+            echo "❌ Homepage content validation failed"
+            exit 1
+          fi
+
+      - name: Report smoke test results
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "🎉 All smoke tests passed!"
+          else
+            echo "💥 Some smoke tests failed!"
+          fi
