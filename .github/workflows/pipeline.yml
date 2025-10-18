@@ -9,14 +9,13 @@ on:
     branches:
       - "**"
 
-# Cancel in-progress runs for the same branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: ESLint
+  dependency-validation:
+    name: Package Audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -32,6 +31,36 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: dependency-validation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Run ESLint
         run: npm run lint
@@ -40,6 +69,7 @@ jobs:
     name: Prettier
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: dependency-validation
 
     steps:
       - name: Checkout repository
@@ -49,31 +79,61 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Run Prettier check
         run: npm run prettier:check
+
+  typecheck:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: dependency-validation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
 
   test:
     name: Jest Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: dependency-validation
 
     steps:
       - name: Checkout repository
+
         uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Run tests
         run: npm run test:coverage
@@ -103,15 +163,37 @@ jobs:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 89ec456cc3b23d9e0f07de9431936f3f
           filename: coverage.json
-          label: Coverage
+          label: Jest Coverage
           message: ${{ steps.coverage.outputs.coverage }}%
           color: ${{ steps.coverage.outputs.color }}
+
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: dependency-validation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for better analysis
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
 
   build:
     name: Build project
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [lint, prettier, test]
+    needs: [lint, prettier, typecheck, test, sonarcloud]
     if: github.event_name == 'pull_request' && ( github.base_ref == 'main' || github.base_ref == 'dev' )
     environment: ${{ github.base_ref == 'main' && 'production' || 'development' }}
 
@@ -166,30 +248,8 @@ jobs:
           node-version: "22"
           cache: "npm"
 
-      - name: Cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
-            ${{ runner.os }}-nextjs-
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Build project
-        env:
-          CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
-          CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
-          CONTENTFUL_PREVIEW_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_PREVIEW_ACCESS_TOKEN }}
-          CONTENTFUL_PREVIEW_SECRET: ${{ secrets.CONTENTFUL_PREVIEW_SECRET }}
-          CONTENTFUL_REVALIDATE_SECRET: ${{ secrets.CONTENTFUL_REVALIDATE_SECRET }}
-        run: npm run build
-
-      - name: Deploy to Production
-        run: echo "Deploying to production server..."
 
       - name: Deploy to Netlify
         id: netlify_deploy
@@ -199,7 +259,9 @@ jobs:
           CONTENTFUL_PREVIEW_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_PREVIEW_ACCESS_TOKEN }}
           CONTENTFUL_PREVIEW_SECRET: ${{ secrets.CONTENTFUL_PREVIEW_SECRET }}
           CONTENTFUL_REVALIDATE_SECRET: ${{ secrets.CONTENTFUL_REVALIDATE_SECRET }}
-        run: npx netlify deploy --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }} --prod
+        run: |
+          OUTPUT=$(npx netlify deploy --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }} --prod --json)
+          echo "deployment_url=$(echo $OUTPUT | jq -r .deploy_url)" >> $GITHUB_OUTPUT
 
       - name: Get Deployment Timestamp
         if: success()
@@ -215,7 +277,7 @@ jobs:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: b8da1bf6d1551c77df858bcfd3ec7b1d
           filename: deployment.json
-          label: Deployed
+          label: Deployment 🚀
           message: Successful on ${{ steps.timestamp.outputs.time }}
           color: brightgreen
 
@@ -229,3 +291,55 @@ jobs:
           label: Deployment 🚀
           message: Failed
           color: red
+
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: deploy
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+
+    steps:
+      - name: Wait for deployment to be ready
+        run: sleep 10
+
+      - name: Check if site is accessible
+        run: |
+          SITE_URL="https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
+          echo "Testing $SITE_URL"
+
+          # Check if site returns 200 OK
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL")
+
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✅ Site is up! HTTP Status: $HTTP_CODE"
+          else
+            echo "❌ Site check failed! HTTP Status: $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Check critical pages
+        run: |
+          SITE_URL="https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
+
+          # Test homepage
+          echo "Testing homepage..."
+          curl -f -s "$SITE_URL" > /dev/null || { echo "❌ Homepage failed"; exit 1; }
+          echo "✅ Homepage is accessible"
+
+          # Check if page contains expected content
+          CONTENT=$(curl -s "$SITE_URL")
+          if echo "$CONTENT" | grep -q "Blog"; then
+            echo "✅ Homepage contains expected content"
+          else
+            echo "⚠️  Warning: Expected content not found on homepage"
+          fi
+
+      - name: Report smoke test results
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "🎉 All smoke tests passed!"
+          else
+            echo "💥 Some smoke tests failed!"
+          fi

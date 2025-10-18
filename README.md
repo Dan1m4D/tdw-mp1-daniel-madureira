@@ -3,6 +3,7 @@
 [![CI/CD Workflow](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Dan1m4D/tdw-mp1-daniel-madureira/actions/workflows/pipeline.yml)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Dan1m4D/89ec456cc3b23d9e0f07de9431936f3f/raw/coverage.json)
 ![Deployment](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Dan1m4D/b8da1bf6d1551c77df858bcfd3ec7b1d/raw/deployment.json)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Dan1m4D_tdw-mp1-daniel-madureira&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Dan1m4D_tdw-mp1-daniel-madureira)
 
 The objective of this first mini-project is to develop a CI/CD pipeline over a Next blog that consumes contents from Contentful CMS. The blog looks like the follow:
 
@@ -66,24 +67,37 @@ The CI/CD pipeline is implemented using GitHub Actions and follows industry best
 
 ```mermaid
 graph LR
-    A[Local Commit] --> L[Lefthook]
-    L --> L1[ESLint]
-    L --> L2[Prettier]
-    L --> L3[Jest Tests]
-    L1 --> B[Push]
-    L2 --> B
-    L3 --> B
-    B --> C[GitHub Actions]
-    C --> D[Lint Job]
-    C --> E[Prettier Job]
-    C --> F[Test Job]
-    D --> G{PR to main/dev?}
-    E --> G
-    F --> G
-    G -->|Yes| H[Build Job]
-    H -->|PR to main?| I[Deploy to Netlify]
-    J[Contentful Webhook] --> K[Update Content Action]
-    K --> I
+  A[Local Commit] --> L[Lefthook Pre-commit]
+  L --> L1[ESLint on staged files]
+  L --> L2[Prettier format]
+  L --> L3[Jest on changed tests]
+  L1 --> B[Push to Remote]
+  L2 --> B
+  L3 --> B
+  B --> L4[Lefthook Pre-push]
+  L4 --> L5[npm audit security check]
+  L5 --> C[GitHub Actions]
+  C --> PV[Package Audit]
+  PV --> D[ESLint Job]
+  PV --> E[Prettier Job]
+  PV --> TC[TypeCheck Job]
+  PV --> F[Test Job with Coverage]
+  PV --> SC[SonarCloud Job]
+  D --> G{PR to main/dev?}
+  E --> G
+  TC --> G
+  F --> G
+  SC --> G
+  G -->|Yes| H[Build Job]
+  G -->|No| END[End]
+  H -->|PR to main?| I[Deploy Job]
+  H -->|PR to dev?| END
+  I --> I2[Deploy to Netlify]
+  I2 --> ST[Smoke Test]
+  J[Contentful CMS Update] --> K[Content Update Webhook]
+  K --> K1[Rebuild Site]
+  K1 --> I2
+  M[Scheduled Cron: Weekdays 00:00 UTC] --> K1
 ```
 
 ### Workflows
@@ -94,23 +108,69 @@ I developed 2 Github Actions workflows:
 
 Main development and deployment workflow triggered by pushes and pull requests.
 
-| Job          | Description                                  | Runs On                | Timeout |
-| ------------ | -------------------------------------------- | ---------------------- | ------- |
-| **ESLint**   | Lints the code for errors and style issues   | All pushes & PRs       | 5 min   |
-| **Prettier** | Checks code formatting consistency           | All pushes & PRs       | 5 min   |
-| **Test**     | Runs Jest test suite with coverage reporting | All pushes & PRs       | 10 min  |
-| **Build**    | Validates project builds successfully        | PRs to `main` or `dev` | 15 min  |
-| **Deploy**   | Deploys to Netlify production                | PRs to `main` only     | 15 min  |
+| Job           | Description                                              | When                   | Timeout |
+| ------------- | -------------------------------------------------------- | ---------------------- | ------- |
+| Package Audit | Runs `npm audit` to check for dependency vulnerabilities | All pushes & PRs       | 5 min   |
+| ESLint        | Lints code for errors and style violations               | All pushes & PRs       | 10 min  |
+| Prettier      | Checks code formatting                                   | All pushes & PRs       | 10 min  |
+| TypeCheck     | Validates TypeScript types with `tsc --noEmit`           | All pushes & PRs       | 10 min  |
+| Test          | Runs Jest test suite with coverage                       | All pushes & PRs       | 10 min  |
+| SonarCloud    | Analyzes code quality and security                       | All pushes & PRs       | 10 min  |
+| Build         | Validates Next.js build process                          | PRs to `main` or `dev` | 15 min  |
+| Deploy        | Deploys to Netlify production                            | PRs to `main`          | 15 min  |
+| Smoke Test    | Verifies deployment is live and accessible               | After deployment       | 5 min   |
 
 #### 2. **Content Update Workflow** (`update_content.yml`)
 
-Webhook-triggered workflow for Contentful CMS integration.
+Webhook and schedule-triggered workflow for Contentful CMS integration.
 
 | Trigger                | Description                                               | Actions                          |
 | ---------------------- | --------------------------------------------------------- | -------------------------------- |
 | **Contentful Webhook** | Triggered when content is published/updated in Contentful | Rebuild site → Deploy to Netlify |
+| **Scheduled Cron Job** | Runs every weekday at midnight UTC (`0 0 * * *`)          | Rebuild site → Deploy to Netlify |
 
-This workflow enables automatic site redeployment when content editors publish or update content in Contentful CMS, ensuring the production site always reflects the latest content without requiring developer intervention.
+This workflow enables automatic site redeployment through two mechanisms:
+
+1. **Immediate updates**: When content editors publish or update content in Contentful CMS
+2. **Scheduled rebuilds**: Daily automatic rebuilds to ensure content freshness and catch any missed webhook events
+
+Both triggers ensure the production site always reflects the latest content without requiring developer intervention.
+
+### Quality Gates
+
+The pipeline enforces multiple quality gates that run sequentially and in parallel before allowing deployment:
+
+#### **Package Audit (Security Gate)**
+
+- **First gate**: Runs before all other quality checks
+- Executes `npm audit --audit-level=moderate` to detect dependency vulnerabilities
+- Blocks the pipeline if moderate or higher severity vulnerabilities are found
+- Uses clean install (`npm ci`) to ensure lock file consistency
+- **Benefit**: Prevents building or deploying code with known security issues
+
+#### **TypeScript Type Checking**
+
+- Runs `tsc --noEmit` to validate type safety
+- Catches type errors before runtime
+- Ensures type definitions are correct across the codebase
+
+#### **SonarCloud Code Analysis**
+
+- Comprehensive code quality and security analysis
+- Detects bugs, code smells, and security vulnerabilities
+- Tracks technical debt and code coverage
+- Provides detailed PR comments with analysis results
+- Quality gate must pass before deployment
+
+#### **Smoke Testing**
+
+- Automated post-deployment verification
+- Checks if the deployed site is accessible (HTTP 200)
+- Validates homepage loads correctly
+- Verifies critical content is present
+- Fails the pipeline if the site is down or broken
+
+These gates ensure that only high-quality, type-safe, secure, and verified code reaches production.
 
 ### Performance Optimizations
 
@@ -125,22 +185,17 @@ The pipeline includes several performance optimizations to reduce execution time
 #### 2. **Next.js Build Caching**
 
 - Caches `.next/cache` directory for production builds
-- Cache key based on dependencies and source code hashes
+- Cache key uses commit SHA (`github.sha`) for efficient lookup
 - **Benefit**: 30-50% faster build times with cache hits
 - **Applied to**: Production builds (PRs to `main`) only
+- **Optimization**: Uses commit SHA instead of file hashing for instant cache key generation
 
-#### 3. **Build Artifact Sharing**
-
-- Build artifacts (`.next` and `public` folders) are uploaded after production builds
-- Deploy job downloads and reuses these artifacts instead of rebuilding
-- **Benefit**: Eliminates redundant build step in deployment, ensures exact build is deployed
-
-#### 4. **Concurrency Control**
+#### 3. **Concurrency Control**
 
 - Automatically cancels in-progress runs when new commits are pushed to the same branch
 - **Benefit**: Saves CI/CD minutes and avoids queue buildup
 
-#### 5. **Optimized Commands**
+#### 4. **Optimized Commands**
 
 - Uses `npm ci` instead of `npm install` for faster, more reliable installations
 - **Benefit**: Clean installs based on lock file, better for CI environments
@@ -206,10 +261,12 @@ This creates a **defense-in-depth** strategy:
 
 ### Pipeline Conditions
 
-- **Lint, Prettier, Test**: Run on all pushes and pull requests to any branch
-- **Build**: Runs only on pull requests targeting `main` or `dev` branches
+- **Package Audit**: Runs on all pushes and pull requests to any branch (first gate before any quality checks)
+- **ESLint, Prettier, TypeCheck, Test, SonarCloud**: Run on all pushes and pull requests to any branch (after Package Audit passes)
+- **Build**: Runs only on pull requests targeting `main` or `dev` branches (after all quality gates pass)
 - **Deploy**: Runs only on pull requests targeting `main` branch (after successful build)
-- **Content Update**: Runs on Contentful webhook events (content publish/update)
+- **Smoke Test**: Runs after deployment to `main` to verify site accessibility
+- **Content Update**: Runs on Contentful webhook events and scheduled cron job (weekdays at midnight UTC)
 
 ## Contentful configuration
 
