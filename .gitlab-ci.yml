@@ -188,8 +188,6 @@ deploy:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
-
-
 # Smoke test to verify deployment (only runs after successful deployment to main)
 smoke-test:
   stage: test
