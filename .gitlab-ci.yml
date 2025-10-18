@@ -128,6 +128,13 @@ build-development:
     - test
   before_script:
     - npm ci
+  variables:
+    # These will be pulled from environment-scoped variables in GitLab
+    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
+    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
+    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   cache:
     key:
       files:
@@ -162,6 +169,13 @@ build-production:
     - test
   before_script:
     - npm ci
+  variables:
+    # These will be pulled from environment-scoped variables in GitLab
+    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
+    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
+    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   cache:
     key:
       files:
@@ -194,6 +208,16 @@ deploy-production:
     - build-production
   before_script:
     - npm ci
+  variables:
+    # Netlify and Contentful variables from production environment
+    NETLIFY_SITE_ID: $NETLIFY_SITE_ID
+    NETLIFY_AUTH_TOKEN: $NETLIFY_AUTH_TOKEN
+    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
+    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
+    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
+    PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
   script:
     - echo "Deploying to production server..."
     - |
@@ -276,6 +300,13 @@ redeploy-on-content-update:
   timeout: 15 minutes
   before_script:
     - npm ci
+  variables:
+    # These will be pulled from production environment-scoped variables in GitLab
+    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
+    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
+    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   cache:
     key:
       files:
@@ -312,6 +343,15 @@ deploy-content-update:
     - redeploy-on-content-update
   before_script:
     - npm ci
+  variables:
+    # Netlify and Contentful variables from production environment
+    NETLIFY_SITE_ID: $NETLIFY_SITE_ID
+    NETLIFY_AUTH_TOKEN: $NETLIFY_AUTH_TOKEN
+    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
+    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
+    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   script:
     - echo "Deploying updated content to production..."
     - |
