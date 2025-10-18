@@ -127,7 +127,7 @@ Webhook and schedule-triggered workflow for Contentful CMS integration.
 | Trigger                | Description                                               | Actions                          |
 | ---------------------- | --------------------------------------------------------- | -------------------------------- |
 | **Contentful Webhook** | Triggered when content is published/updated in Contentful | Rebuild site → Deploy to Netlify |
-| **Scheduled Cron Job** | Runs daily at midnight UTC (`0 0 * * *`)                  | Rebuild site → Deploy to Netlify |
+| **Scheduled Cron Job** | Runs every weekday at midnight UTC (`0 0 * * *`)          | Rebuild site → Deploy to Netlify |
 
 This workflow enables automatic site redeployment through two mechanisms:
 

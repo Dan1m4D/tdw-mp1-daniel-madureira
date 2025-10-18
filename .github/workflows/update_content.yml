@@ -4,7 +4,7 @@ on:
   repository_dispatch:
     types: [publish-event]
   schedule:
-    - cron: "0 0 * * 1-5"
+    - cron: "30 13 * * *"
 
 jobs:
   redeploy:
