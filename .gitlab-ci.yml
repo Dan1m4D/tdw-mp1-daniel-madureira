@@ -28,7 +28,7 @@ default:
     paths:
       - node_modules/
       - .npm/
-    policy: pullfeature/replicate-pipeline-on-gitlab
+    policy: pull
 
 # Cache save configuration
 .node_cache_save: &node_cache_save
