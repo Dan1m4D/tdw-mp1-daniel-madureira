@@ -1,0 +1,293 @@
+# GitLab CI/CD Pipeline
+# Replicates the GitHub Actions workflow in gitlab
+
+# Global variables
+variables:
+  NODE_VERSION: "22"
+
+# Define stages
+stages:
+  - setup
+  - quality
+  - build
+  - deploy
+  - test
+
+# Default settings for all jobs
+default:
+  image: node:22
+  # Cancel pipeline if a newer one starts
+  interruptible: true
+
+# Cache configuration for node_modules
+.node_cache: &node_cache
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+    policy: pull
+
+# Cache save configuration
+.node_cache_save: &node_cache_save
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+    policy: push
+
+# Setup: Install dependencies and create cache
+setup:
+  stage: setup
+  <<: *node_cache_save
+  timeout: 3 minutes
+  script:
+    - npm ci --prefer-offline
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Lint job with ESLint
+lint:
+  stage: quality
+  <<: *node_cache
+  timeout: 3 minutes
+  needs:
+    - setup
+  script:
+    - npm run lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Prettier check job
+prettier:
+  stage: quality
+  <<: *node_cache
+  timeout: 2 minutes
+  needs:
+    - setup
+  script:
+    - npm run prettier:check
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# TypeScript type checking
+typecheck:
+  stage: quality
+  <<: *node_cache
+  timeout: 3 minutes
+  needs:
+    - setup
+  script:
+    - npx tsc --noEmit
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Jest tests with coverage
+test:
+  stage: quality
+  <<: *node_cache
+  timeout: 5 minutes
+  needs:
+    - setup
+  script:
+    - npm run test:coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+      junit: coverage/junit.xml
+    paths:
+      - coverage/
+    expire_in: 30 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Build application
+build:
+  stage: build
+  timeout: 10 minutes
+  needs:
+    - lint
+    - prettier
+    - typecheck
+    - test
+  variables:
+    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
+    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
+    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
+  cache:
+    - key:
+        files:
+          - package-lock.json
+      paths:
+        - node_modules/
+        - .npm/
+      policy: pull
+    - key: next-cache-$CI_COMMIT_REF_SLUG
+      paths:
+        - .next/cache/
+      policy: pull-push
+  script:
+    - npm ci --prefer-offline --no-audit
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+      - public/
+    expire_in: 1 day
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main")'
+
+# Deploy to Netlify (production only)
+deploy:
+  stage: deploy
+  image: node:22
+  timeout: 5 minutes
+  before_script:
+    - npm ci --no-audit
+  needs:
+    - build
+  variables:
+    NETLIFY_SITE_ID: $NETLIFY_SITE_ID
+    NETLIFY_AUTH_TOKEN: $NETLIFY_AUTH_TOKEN
+  script:
+    - echo "Deploying to Netlify..."
+    - npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod
+    - echo "✅ Deployment complete!"
+  artifacts:
+    reports:
+      dotenv: deploy.env
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+
+# Smoke test to verify deployment (only runs after successful deployment to main)
+smoke-test:
+  stage: test
+  image: curlimages/curl:latest
+  timeout: 5 minutes
+  needs:
+    - deploy
+  before_script:
+    - echo "Waiting for deployment to be ready..."
+    - sleep 10
+  variables:
+    PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
+  script:
+    - echo "Checking site accessibility..."
+    - HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
+    - echo "HTTP Status Code:$HTTP_CODE"
+    - '[ "$HTTP_CODE" = "200" ] || exit 1'
+    - echo "✅ Site is accessible (HTTP 200)"
+    - echo "Validating homepage content..."
+    - CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
+    - echo "$CONTENT" | grep -q "Blog" || exit 1
+    - echo "✅ Homepage content is valid"
+    - echo "🎉 Content update smoke tests passed!"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+
+# Redeploy site when content is updated
+# Build on content update (triggered/scheduled)
+build-content-update:
+  stage: build
+  timeout: 15 minutes
+  before_script:
+    - npm ci
+  variables:
+    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
+    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
+    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+      - .next/cache/
+    policy: pull-push
+  script:
+    - echo "Rebuilding site with updated content..."
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+      - public/
+    expire_in: 1 day
+  rules:
+    # Triggered by pipeline trigger or scheduled pipeline
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+# Deploy after content update
+deploy-content-update:
+  stage: deploy
+  image: node:22
+  timeout: 15 minutes
+  needs:
+    - build-content-update
+  before_script:
+    - npm ci
+  variables:
+    NETLIFY_SITE_ID: $NETLIFY_SITE_ID
+    NETLIFY_AUTH_TOKEN: $NETLIFY_AUTH_TOKEN
+    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
+    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
+    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
+    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
+  script:
+    - echo "Deploying updated content to Netlify..."
+    - npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod
+    - echo "✅ Content update deployment complete!"
+  artifacts:
+    reports:
+      dotenv: deploy.env
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+# Smoke test after content update deployment
+smoke-test-content-update:
+  stage: test
+  image: curlimages/curl:latest
+  timeout: 5 minutes
+  needs:
+    - deploy-content-update
+  before_script:
+    - echo "Waiting for deployment to stabilize..."
+    - sleep 10
+  variables:
+    PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
+  script:
+    - echo "Checking site accessibility..."
+    - HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
+    - echo "HTTP Status Code:$HTTP_CODE"
+    - '[ "$HTTP_CODE" = "200" ] || exit 1'
+    - echo "✅ Site is accessible (HTTP 200)"
+    - echo "Validating homepage content..."
+    - CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
+    - echo "$CONTENT" | grep -q "Blog" || exit 1
+    - echo "✅ Homepage content is valid"
+    - echo "🎉 Content update smoke tests passed!"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_BRANCH_NAME == "main"'
