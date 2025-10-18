@@ -145,8 +145,17 @@ build:
     policy: pull-push
   script:
     - echo "Building application..."
-    - 'echo "Target branch: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME"'
-    - 'echo "CONTENTFUL_SPACE_ID is set: $(if [ -n \"$CONTENTFUL_SPACE_ID\" ]; then echo YES; else echo NO; fi)"'
+    - echo "Target branch:$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - echo "Checking environment variables..."
+    - echo "CONTENTFUL_SPACE_ID=${CONTENTFUL_SPACE_ID:-NOT_SET}"
+    - echo "CONTENTFUL_ACCESS_TOKEN=${CONTENTFUL_ACCESS_TOKEN:+SET}"
+    - echo "CONTENTFUL_PREVIEW_ACCESS_TOKEN=${CONTENTFUL_PREVIEW_ACCESS_TOKEN:+SET}"
+    - |
+      if [ -z "$CONTENTFUL_SPACE_ID" ] || [ -z "$CONTENTFUL_ACCESS_TOKEN" ]; then
+        echo "❌ ERROR: Required Contentful environment variables are not set!"
+        echo "Please configure CONTENTFUL_SPACE_ID and CONTENTFUL_ACCESS_TOKEN in GitLab CI/CD settings"
+        exit 1
+      fi
     - npm run build
   artifacts:
     paths:
@@ -173,7 +182,6 @@ deploy:
     CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
     CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
     CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
-    PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
   script:
     - echo "Deploying to Netlify..."
     - |
