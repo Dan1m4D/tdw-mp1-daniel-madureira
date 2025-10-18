@@ -7,7 +7,7 @@ variables:
 
 # Define stages
 stages:
-  - audit
+  - setup
   - quality
   - build
   - deploy
@@ -41,15 +41,13 @@ default:
       - .npm/
     policy: push
 
-# Audit: Run npm audit and create cache
-audit:
-  stage: audit
+# Setup: Install dependencies and create cache
+setup:
+  stage: setup
   <<: *node_cache_save
-  timeout: 5 minutes
-  before_script:
-    - npm ci
+  timeout: 3 minutes
   script:
-    - npm audit --audit-level=moderate
+    - npm ci --prefer-offline
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -58,9 +56,9 @@ audit:
 lint:
   stage: quality
   <<: *node_cache
-  timeout: 5 minutes
+  timeout: 3 minutes
   needs:
-    - audit
+    - setup
   script:
     - npm run lint
   rules:
@@ -71,9 +69,9 @@ lint:
 prettier:
   stage: quality
   <<: *node_cache
-  timeout: 5 minutes
+  timeout: 2 minutes
   needs:
-    - audit
+    - setup
   script:
     - npm run prettier:check
   rules:
@@ -84,9 +82,9 @@ prettier:
 typecheck:
   stage: quality
   <<: *node_cache
-  timeout: 5 minutes
+  timeout: 3 minutes
   needs:
-    - audit
+    - setup
   script:
     - npx tsc --noEmit
   rules:
@@ -97,9 +95,9 @@ typecheck:
 test:
   stage: quality
   <<: *node_cache
-  timeout: 10 minutes
+  timeout: 5 minutes
   needs:
-    - audit
+    - setup
   script:
     - npm run test:coverage
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
@@ -120,14 +118,12 @@ test:
 # Build application
 build:
   stage: build
-  timeout: 15 minutes
+  timeout: 10 minutes
   needs:
     - lint
     - prettier
     - typecheck
     - test
-  before_script:
-    - npm ci
   variables:
     CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
     CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
@@ -135,15 +131,19 @@ build:
     CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
     CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   cache:
-    key:
-      files:
-        - package-lock.json
-    paths:
-      - node_modules/
-      - .npm/
-      - .next/cache/
-    policy: pull-push
+    - key:
+        files:
+          - package-lock.json
+      paths:
+        - node_modules/
+        - .npm/
+      policy: pull
+    - key: next-cache-$CI_COMMIT_REF_SLUG
+      paths:
+        - .next/cache/
+      policy: pull-push
   script:
+    - npm ci --prefer-offline --no-audit
     - npm run build
   artifacts:
     paths:
@@ -157,22 +157,16 @@ build:
 deploy:
   stage: deploy
   image: node:22
-  timeout: 15 minutes
+  timeout: 5 minutes
   needs:
     - build
-  before_script:
-    - npm ci
   variables:
     NETLIFY_SITE_ID: $NETLIFY_SITE_ID
     NETLIFY_AUTH_TOKEN: $NETLIFY_AUTH_TOKEN
-    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
-    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
-    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
-    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
-    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   script:
     - echo "Deploying to Netlify..."
-    - npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod
+    - npm install -g netlify-cli
+    - netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --dir=.next
     - echo "✅ Deployment complete!"
   artifacts:
     reports:
@@ -190,6 +184,8 @@ smoke-test:
   before_script:
     - echo "Waiting for deployment to be ready..."
     - sleep 10
+  variables:
+    PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
   script:
     - |
       echo "Testing $PRODUCTION_SITE_URL"
@@ -201,7 +197,7 @@ smoke-test:
         echo "✅ Site is up! HTTP Status: $HTTP_CODE"
       else
         echo "❌ Site check failed! HTTP Status: $HTTP_CODE"
-        exit 1
+        exit 1>
       fi
     - |
       # Test homepage
@@ -294,10 +290,12 @@ smoke-test-content-update:
   before_script:
     - echo "Waiting for deployment to stabilize..."
     - sleep 10
+  variables:
+    PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
   script:
     - |
       echo "Checking site accessibility..."
-      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://tdw-mp1-daniel-madureira.tdw-mctw.pt")
+      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
 
       if [ "$HTTP_CODE" -ne 200 ]; then
         echo "❌ Site returned HTTP $HTTP_CODE instead of 200"
@@ -306,7 +304,7 @@ smoke-test-content-update:
       echo "✅ Site is accessible (HTTP 200)"
     - |
       echo "Validating homepage content..."
-      CONTENT=$(curl -s "https://tdw-mp1-daniel-madureira.tdw-mctw.pt")
+      CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
 
       if echo "$CONTENT" | grep -q "Blog"; then
         echo "✅ Homepage content is valid"
