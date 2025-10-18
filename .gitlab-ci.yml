@@ -158,6 +158,8 @@ deploy:
   stage: deploy
   image: node:22
   timeout: 5 minutes
+  before_script:
+    - npm ci --no-audit
   needs:
     - build
   variables:
@@ -165,7 +167,6 @@ deploy:
     NETLIFY_AUTH_TOKEN: $NETLIFY_AUTH_TOKEN
   script:
     - echo "Deploying to Netlify..."
-    - npm install -g netlify-cli
     - netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --dir=.next
     - echo "✅ Deployment complete!"
   artifacts:
