@@ -28,7 +28,7 @@ default:
     paths:
       - node_modules/
       - .npm/
-    policy: pull
+    policy: pullfeature/replicate-pipeline-on-gitlab
 
 # Cache save configuration
 .node_cache_save: &node_cache_save
@@ -269,3 +269,104 @@ smoke-test-production:
     deployment_tier: production
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+
+# Redeploy site when content is updated
+redeploy-on-content-update:
+  stage: build
+  timeout: 15 minutes
+  before_script:
+    - npm ci
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+      - .next/cache/
+    policy: pull-push
+  script:
+    - echo "Rebuilding site with updated content..."
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+      - public/
+    expire_in: 1 day
+  environment:
+    name: production
+    deployment_tier: production
+  rules:
+    # Triggered by pipeline trigger 
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    # Triggered by scheduled pipeline 
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_BRANCH_NAME == "main"'
+
+# Deploy after content update
+deploy-content-update:
+  stage: deploy
+  image: node:22
+  timeout: 15 minutes
+  needs:
+    - redeploy-on-content-update
+  before_script:
+    - npm ci
+  script:
+    - echo "Deploying updated content to production..."
+    - |
+      OUTPUT=$(npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --json)
+      DEPLOYMENT_URL=$(echo $OUTPUT | jq -r .deploy_url)
+      echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> deploy.env
+      echo "DEPLOYMENT_TIME=$(date -u +"%Y-%m-%d %H:%M UTC")" >> deploy.env
+      echo "✅ Deployed to: $DEPLOYMENT_URL"
+  artifacts:
+    reports:
+      dotenv: deploy.env
+  environment:
+    name: production
+    deployment_tier: production
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_BRANCH_NAME == "main"'
+
+# Smoke test after content update deployment
+smoke-test-content-update:
+  stage: test
+  image: curlimages/curl:latest
+  timeout: 5 minutes
+  needs:
+    - deploy-content-update
+  before_script:
+    - echo "Waiting for deployment to stabilize..."
+    - sleep 10
+  script:
+    - |
+      echo "Checking site accessibility..."
+      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://tdw-mp1-daniel-madureira.tdw-mctw.pt")
+      
+      if [ "$HTTP_CODE" -ne 200 ]; then
+        echo "❌ Site returned HTTP $HTTP_CODE instead of 200"
+        exit 1
+      fi
+      echo "✅ Site is accessible (HTTP 200)"
+    - |
+      echo "Validating homepage content..."
+      CONTENT=$(curl -s "https://tdw-mp1-daniel-madureira.tdw-mctw.pt")
+      
+      if echo "$CONTENT" | grep -q "Blog"; then
+        echo "✅ Homepage content is valid"
+      else
+        echo "❌ Homepage content validation failed"
+        exit 1
+      fi
+    - |
+      echo "🎉 Content update smoke tests passed!"
+  environment:
+    name: production
+    deployment_tier: production
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_BRANCH_NAME == "main"'
