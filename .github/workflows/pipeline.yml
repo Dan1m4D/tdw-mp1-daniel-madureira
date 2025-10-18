@@ -266,10 +266,10 @@ jobs:
         run: |
           SITE_URL="https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
           echo "Testing $SITE_URL"
-          
+
           # Check if site returns 200 OK
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL")
-          
+
           if [ "$HTTP_CODE" -eq 200 ]; then
             echo "✅ Site is up! HTTP Status: $HTTP_CODE"
           else
@@ -280,12 +280,12 @@ jobs:
       - name: Check critical pages
         run: |
           SITE_URL="https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
-          
+
           # Test homepage
           echo "Testing homepage..."
           curl -f -s "$SITE_URL" > /dev/null || { echo "❌ Homepage failed"; exit 1; }
           echo "✅ Homepage is accessible"
-          
+
           # Check if page contains expected content
           CONTENT=$(curl -s "$SITE_URL")
           if echo "$CONTENT" | grep -q "Blog"; then
