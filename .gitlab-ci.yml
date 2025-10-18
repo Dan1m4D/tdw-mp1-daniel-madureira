@@ -297,9 +297,9 @@ redeploy-on-content-update:
     name: production
     deployment_tier: production
   rules:
-    # Triggered by pipeline trigger 
+    # Triggered by pipeline trigger
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
-    # Triggered by scheduled pipeline 
+    # Triggered by scheduled pipeline
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
     - if: '$CI_BRANCH_NAME == "main"'
 
@@ -345,7 +345,7 @@ smoke-test-content-update:
     - |
       echo "Checking site accessibility..."
       HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://tdw-mp1-daniel-madureira.tdw-mctw.pt")
-      
+
       if [ "$HTTP_CODE" -ne 200 ]; then
         echo "❌ Site returned HTTP $HTTP_CODE instead of 200"
         exit 1
@@ -354,7 +354,7 @@ smoke-test-content-update:
     - |
       echo "Validating homepage content..."
       CONTENT=$(curl -s "https://tdw-mp1-daniel-madureira.tdw-mctw.pt")
-      
+
       if echo "$CONTENT" | grep -q "Blog"; then
         echo "✅ Homepage content is valid"
       else
