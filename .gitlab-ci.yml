@@ -144,18 +144,6 @@ build:
       - .next/cache/
     policy: pull-push
   script:
-    - echo "Building application..."
-    - echo "Target branch:$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - echo "Checking environment variables..."
-    - echo "CONTENTFUL_SPACE_ID=${CONTENTFUL_SPACE_ID:-NOT_SET}"
-    - echo "CONTENTFUL_ACCESS_TOKEN=${CONTENTFUL_ACCESS_TOKEN:+SET}"
-    - echo "CONTENTFUL_PREVIEW_ACCESS_TOKEN=${CONTENTFUL_PREVIEW_ACCESS_TOKEN:+SET}"
-    - |
-      if [ -z "$CONTENTFUL_SPACE_ID" ] || [ -z "$CONTENTFUL_ACCESS_TOKEN" ]; then
-        echo "❌ ERROR: Required Contentful environment variables are not set!"
-        echo "Please configure CONTENTFUL_SPACE_ID and CONTENTFUL_ACCESS_TOKEN in GitLab CI/CD settings"
-        exit 1
-      fi
     - npm run build
   artifacts:
     paths:
