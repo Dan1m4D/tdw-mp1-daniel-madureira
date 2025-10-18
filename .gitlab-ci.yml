@@ -172,12 +172,8 @@ deploy:
     CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   script:
     - echo "Deploying to Netlify..."
-    - |
-      OUTPUT=$(npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --json)
-      DEPLOYMENT_URL=$(echo $OUTPUT | jq -r .deploy_url)
-      echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> deploy.env
-      echo "DEPLOYMENT_TIME=$(date -u +"%Y-%m-%d %H:%M UTC")" >> deploy.env
-      echo "✅ Deployed to: $DEPLOYMENT_URL"
+    - npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod
+    - echo "✅ Deployment complete!"
   artifacts:
     reports:
       dotenv: deploy.env
@@ -278,13 +274,9 @@ deploy-content-update:
     CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
     CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   script:
-    - echo "Deploying updated content..."
-    - |
-      OUTPUT=$(npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --json)
-      DEPLOYMENT_URL=$(echo $OUTPUT | jq -r .deploy_url)
-      echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> deploy.env
-      echo "DEPLOYMENT_TIME=$(date -u +"%Y-%m-%d %H:%M UTC")" >> deploy.env
-      echo "✅ Deployed to: $DEPLOYMENT_URL"
+    - echo "Deploying updated content to Netlify..."
+    - npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod
+    - echo "✅ Content update deployment complete!"
   artifacts:
     reports:
       dotenv: deploy.env
