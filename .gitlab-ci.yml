@@ -1,0 +1,271 @@
+# GitLab CI/CD Pipeline
+# Replicates the GitHub Actions workflow
+
+# Global variables
+variables:
+  NODE_VERSION: "22"
+  
+# Define stages
+stages:
+  - audit
+  - quality
+  - build
+  - deploy
+  - test
+
+# Default settings for all jobs
+default:
+  image: node:22
+  # Cancel pipeline if a newer one starts
+  interruptible: true
+
+# Cache configuration for node_modules
+.node_cache: &node_cache
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+    policy: pull
+
+# Cache save configuration
+.node_cache_save: &node_cache_save
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+    policy: push
+
+# Audit: Run npm audit and create cache
+audit:
+  stage: audit
+  <<: *node_cache_save
+  timeout: 5 minutes
+  before_script:
+    - npm ci
+  script:
+    - npm audit --audit-level=moderate
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Lint job with ESLint
+lint:
+  stage: quality
+  <<: *node_cache
+  timeout: 5 minutes
+  needs:
+    - audit
+  script:
+    - npm run lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Prettier check job
+prettier:
+  stage: quality
+  <<: *node_cache
+  timeout: 5 minutes
+  needs:
+    - audit
+  script:
+    - npm run prettier:check
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# TypeScript type checking
+typecheck:
+  stage: quality
+  <<: *node_cache
+  timeout: 5 minutes
+  needs:
+    - audit
+  script:
+    - npx tsc --noEmit
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Jest tests with coverage
+test:
+  stage: quality
+  <<: *node_cache
+  timeout: 10 minutes
+  needs:
+    - audit
+  script:
+    - npm run test:coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+      junit: coverage/junit.xml
+    paths:
+      - coverage/
+    expire_in: 30 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Build with development environment variables
+build-development:
+  stage: build
+  timeout: 15 minutes
+  needs:
+    - lint
+    - prettier
+    - typecheck
+    - test
+  before_script:
+    - npm ci
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+      - .next/cache/
+    policy: pull-push
+  script:
+    - echo "Building with development environment variables..."
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+      - public/
+    expire_in: 1 day
+  environment:
+    name: development
+    deployment_tier: development
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+
+# Build with production environment variables
+build-production:
+  stage: build
+  timeout: 15 minutes
+  needs:
+    - lint
+    - prettier
+    - typecheck
+    - test
+  before_script:
+    - npm ci
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+      - .next/cache/
+    policy: pull-push
+  script:
+    - echo "Building with production environment variables..."
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+      - public/
+    expire_in: 1 day
+  environment:
+    name: production
+    deployment_tier: production
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+
+# Deploy to Netlify (production only)
+deploy-production:
+  stage: deploy
+  image: node:22
+  timeout: 15 minutes
+  needs:
+    - build-production
+  before_script:
+    - npm ci
+  script:
+    - echo "Deploying to production server..."
+    - |
+      OUTPUT=$(npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --json)
+      DEPLOYMENT_URL=$(echo $OUTPUT | jq -r .deploy_url)
+      echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> deploy.env
+      echo "DEPLOYMENT_TIME=$(date -u +"%Y-%m-%d %H:%M UTC")" >> deploy.env
+      echo "✅ Deployed to: $DEPLOYMENT_URL"
+  artifacts:
+    reports:
+      dotenv: deploy.env
+  environment:
+    name: production
+    url: $PRODUCTION_SITE_URL
+    deployment_tier: production
+    on_stop: stop_deployment_production
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+
+# Optional: Stop production deployment
+stop_deployment_production:
+  stage: deploy
+  image: node:22
+  script:
+    - echo "Production deployment stopped or rolled back"
+  environment:
+    name: production
+    action: stop
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: manual
+
+# Smoke test to verify production deployment (only runs on main after successful deployment)
+smoke-test-production:
+  stage: test
+  image: curlimages/curl:latest
+  timeout: 5 minutes
+  needs:
+    - deploy-production
+  before_script:
+    - echo "Waiting for deployment to be ready..."
+    - sleep 10
+  script:
+    - |
+      echo "Testing $PRODUCTION_SITE_URL"
+      
+      # Check if site returns 200 OK
+      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
+      
+      if [ "$HTTP_CODE" -eq 200 ]; then
+        echo "✅ Site is up! HTTP Status: $HTTP_CODE"
+      else
+        echo "❌ Site check failed! HTTP Status: $HTTP_CODE"
+        exit 1
+      fi
+    - |
+      # Test homepage
+      echo "Testing homepage..."
+      curl -f -s "$PRODUCTION_SITE_URL" > /dev/null || { echo "❌ Homepage failed"; exit 1; }
+      echo "✅ Homepage is accessible"
+      
+      # Check if page contains expected content
+      CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
+      if echo "$CONTENT" | grep -q "Blog"; then
+        echo "✅ Homepage contains expected content"
+      else
+        echo "⚠️  Warning: Expected content not found on homepage"
+      fi
+    - |
+      echo "🎉 All smoke tests passed!"
+  environment:
+    name: production
+    deployment_tier: production
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
