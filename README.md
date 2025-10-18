@@ -107,16 +107,16 @@ I developed 2 Github Actions workflows:
 
 Main development and deployment workflow triggered by pushes and pull requests.
 
-| Job             | Description                                  | Runs On                | Timeout |
-| --------------- | -------------------------------------------- | ---------------------- | ------- |
-| **ESLint**      | Lints the code for errors and style issues   | All pushes & PRs       | 5 min   |
-| **Prettier**    | Checks code formatting consistency           | All pushes & PRs       | 5 min   |
-| **TypeCheck**   | TypeScript type checking with tsc --noEmit   | All pushes & PRs       | 5 min   |
-| **Test**        | Runs Jest test suite with coverage reporting | All pushes & PRs       | 10 min  |
-| **SonarCloud**  | Code quality and security analysis           | All pushes & PRs       | 10 min  |
-| **Build**       | Validates project builds successfully        | PRs to `main` or `dev` | 15 min  |
-| **Deploy**      | Deploys to Netlify production                | PRs to `main` only     | 15 min  |
-| **Smoke Test**  | Verifies deployed site is accessible         | After deploy to `main` | 5 min   |
+| Job            | Description                                  | Runs On                | Timeout |
+| -------------- | -------------------------------------------- | ---------------------- | ------- |
+| **ESLint**     | Lints the code for errors and style issues   | All pushes & PRs       | 5 min   |
+| **Prettier**   | Checks code formatting consistency           | All pushes & PRs       | 5 min   |
+| **TypeCheck**  | TypeScript type checking with tsc --noEmit   | All pushes & PRs       | 5 min   |
+| **Test**       | Runs Jest test suite with coverage reporting | All pushes & PRs       | 10 min  |
+| **SonarCloud** | Code quality and security analysis           | All pushes & PRs       | 10 min  |
+| **Build**      | Validates project builds successfully        | PRs to `main` or `dev` | 15 min  |
+| **Deploy**     | Deploys to Netlify production                | PRs to `main` only     | 15 min  |
+| **Smoke Test** | Verifies deployed site is accessible         | After deploy to `main` | 5 min   |
 
 #### 2. **Content Update Workflow** (`update_content.yml`)
 
@@ -139,11 +139,13 @@ Both triggers ensure the production site always reflects the latest content with
 The pipeline enforces multiple quality gates that run in parallel before allowing deployment:
 
 #### **TypeScript Type Checking**
+
 - Runs `tsc --noEmit` to validate type safety
 - Catches type errors before runtime
 - Ensures type definitions are correct across the codebase
 
 #### **SonarCloud Code Analysis**
+
 - Comprehensive code quality and security analysis
 - Detects bugs, code smells, and security vulnerabilities
 - Tracks technical debt and code coverage
@@ -151,6 +153,7 @@ The pipeline enforces multiple quality gates that run in parallel before allowin
 - Quality gate must pass before deployment
 
 #### **Smoke Testing**
+
 - Automated post-deployment verification
 - Checks if the deployed site is accessible (HTTP 200)
 - Validates homepage loads correctly
