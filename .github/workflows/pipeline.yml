@@ -218,7 +218,9 @@ jobs:
           CONTENTFUL_PREVIEW_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_PREVIEW_ACCESS_TOKEN }}
           CONTENTFUL_PREVIEW_SECRET: ${{ secrets.CONTENTFUL_PREVIEW_SECRET }}
           CONTENTFUL_REVALIDATE_SECRET: ${{ secrets.CONTENTFUL_REVALIDATE_SECRET }}
-        run: npx netlify deploy --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }} --prod
+        run: |
+          OUTPUT=$(npx netlify deploy --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }} --prod --json)
+          echo "deployment_url=$(echo $OUTPUT | jq -r .deploy_url)" >> $GITHUB_OUTPUT
 
       - name: Get Deployment Timestamp
         if: success()
@@ -248,3 +250,55 @@ jobs:
           label: Deployment 🚀
           message: Failed
           color: red
+
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: deploy
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+
+    steps:
+      - name: Wait for deployment to be ready
+        run: sleep 10
+
+      - name: Check if site is accessible
+        run: |
+          SITE_URL="https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
+          echo "Testing $SITE_URL"
+          
+          # Check if site returns 200 OK
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL")
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✅ Site is up! HTTP Status: $HTTP_CODE"
+          else
+            echo "❌ Site check failed! HTTP Status: $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Check critical pages
+        run: |
+          SITE_URL="https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
+          
+          # Test homepage
+          echo "Testing homepage..."
+          curl -f -s "$SITE_URL" > /dev/null || { echo "❌ Homepage failed"; exit 1; }
+          echo "✅ Homepage is accessible"
+          
+          # Check if page contains expected content
+          CONTENT=$(curl -s "$SITE_URL")
+          if echo "$CONTENT" | grep -q "Blog"; then
+            echo "✅ Homepage contains expected content"
+          else
+            echo "⚠️  Warning: Expected content not found on homepage"
+          fi
+
+      - name: Report smoke test results
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "🎉 All smoke tests passed!"
+          else
+            echo "💥 Some smoke tests failed!"
+          fi
