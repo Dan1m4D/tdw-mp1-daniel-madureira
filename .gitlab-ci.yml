@@ -188,33 +188,16 @@ smoke-test:
   variables:
     PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
   script:
-    - |
-      echo "Testing $PRODUCTION_SITE_URL"
-
-      # Check if site returns 200 OK
-      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
-
-      if [ "$HTTP_CODE" -eq 200 ]; then
-        echo "✅ Site is up! HTTP Status: $HTTP_CODE"
-      else
-        echo "❌ Site check failed! HTTP Status: $HTTP_CODE"
-        exit 1>
-      fi
-    - |
-      # Test homepage
-      echo "Testing homepage..."
-      curl -f -s "$PRODUCTION_SITE_URL" > /dev/null || { echo "❌ Homepage failed"; exit 1; }
-      echo "✅ Homepage is accessible"
-
-      # Check if page contains expected content
-      CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
-      if echo "$CONTENT" | grep -q "Blog"; then
-        echo "✅ Homepage contains expected content"
-      else
-        echo "⚠️  Warning: Expected content not found on homepage"
-      fi
-    - |
-      echo "🎉 All smoke tests passed!"
+    - echo "Checking site accessibility..."
+    - HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
+    - echo "HTTP Status Code:$HTTP_CODE"
+    - '[ "$HTTP_CODE" = "200" ] || exit 1'
+    - echo "✅ Site is accessible (HTTP 200)"
+    - echo "Validating homepage content..."
+    - CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
+    - echo "$CONTENT" | grep -q "Blog" || exit 1
+    - echo "✅ Homepage content is valid"
+    - echo "🎉 Content update smoke tests passed!"
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
@@ -294,27 +277,16 @@ smoke-test-content-update:
   variables:
     PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
   script:
-    - |
-      echo "Checking site accessibility..."
-      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
-
-      if [ "$HTTP_CODE" -ne 200 ]; then
-        echo "❌ Site returned HTTP $HTTP_CODE instead of 200"
-        exit 1
-      fi
-      echo "✅ Site is accessible (HTTP 200)"
-    - |
-      echo "Validating homepage content..."
-      CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
-
-      if echo "$CONTENT" | grep -q "Blog"; then
-        echo "✅ Homepage content is valid"
-      else
-        echo "❌ Homepage content validation failed"
-        exit 1
-      fi
-    - |
-      echo "🎉 Content update smoke tests passed!"
+    - echo "Checking site accessibility..."
+    - HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PRODUCTION_SITE_URL")
+    - echo "HTTP Status Code:$HTTP_CODE"
+    - '[ "$HTTP_CODE" = "200" ] || exit 1'
+    - echo "✅ Site is accessible (HTTP 200)"
+    - echo "Validating homepage content..."
+    - CONTENT=$(curl -s "$PRODUCTION_SITE_URL")
+    - echo "$CONTENT" | grep -q "Blog" || exit 1
+    - echo "✅ Homepage content is valid"
+    - echo "🎉 Content update smoke tests passed!"
   rules:
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
