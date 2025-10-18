@@ -117,8 +117,8 @@ test:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-# Build with development environment variables
-build-development:
+# Build application
+build:
   stage: build
   timeout: 15 minutes
   needs:
@@ -129,7 +129,6 @@ build-development:
   before_script:
     - npm ci
   variables:
-    # These will be pulled from environment-scoped variables in GitLab
     CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
     CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
     CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
@@ -145,71 +144,28 @@ build-development:
       - .next/cache/
     policy: pull-push
   script:
-    - echo "Building with development environment variables..."
+    - echo "Building application..."
+    - 'echo "Target branch: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME"'
+    - 'echo "CONTENTFUL_SPACE_ID is set: $(if [ -n \"$CONTENTFUL_SPACE_ID\" ]; then echo YES; else echo NO; fi)"'
     - npm run build
   artifacts:
     paths:
       - .next/
       - public/
     expire_in: 1 day
-  environment:
-    name: development
-    deployment_tier: development
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
-
-# Build with production environment variables
-build-production:
-  stage: build
-  timeout: 15 minutes
-  needs:
-    - lint
-    - prettier
-    - typecheck
-    - test
-  before_script:
-    - npm ci
-  variables:
-    # These will be pulled from environment-scoped variables in GitLab
-    CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
-    CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
-    CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
-    CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
-    CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
-  cache:
-    key:
-      files:
-        - package-lock.json
-    paths:
-      - node_modules/
-      - .npm/
-      - .next/cache/
-    policy: pull-push
-  script:
-    - echo "Building with production environment variables..."
-    - npm run build
-  artifacts:
-    paths:
-      - .next/
-      - public/
-    expire_in: 1 day
-  environment:
-    name: production
-    deployment_tier: production
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main")'
 
 # Deploy to Netlify (production only)
-deploy-production:
+deploy:
   stage: deploy
   image: node:22
   timeout: 15 minutes
   needs:
-    - build-production
+    - build
   before_script:
     - npm ci
   variables:
-    # Netlify and Contentful variables from production environment
     NETLIFY_SITE_ID: $NETLIFY_SITE_ID
     NETLIFY_AUTH_TOKEN: $NETLIFY_AUTH_TOKEN
     CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
@@ -219,7 +175,7 @@ deploy-production:
     CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
     PRODUCTION_SITE_URL: "https://tdw-mp1-daniel-madureira.tdw-mctw.pt"
   script:
-    - echo "Deploying to production server..."
+    - echo "Deploying to Netlify..."
     - |
       OUTPUT=$(npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --json)
       DEPLOYMENT_URL=$(echo $OUTPUT | jq -r .deploy_url)
@@ -229,34 +185,18 @@ deploy-production:
   artifacts:
     reports:
       dotenv: deploy.env
-  environment:
-    name: production
-    url: $PRODUCTION_SITE_URL
-    deployment_tier: production
-    on_stop: stop_deployment_production
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
-# Optional: Stop production deployment
-stop_deployment_production:
-  stage: deploy
-  image: node:22
-  script:
-    - echo "Production deployment stopped or rolled back"
-  environment:
-    name: production
-    action: stop
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
-      when: manual
 
-# Smoke test to verify production deployment (only runs on main after successful deployment)
-smoke-test-production:
+
+# Smoke test to verify deployment (only runs after successful deployment to main)
+smoke-test:
   stage: test
   image: curlimages/curl:latest
   timeout: 5 minutes
   needs:
-    - deploy-production
+    - deploy
   before_script:
     - echo "Waiting for deployment to be ready..."
     - sleep 10
@@ -288,20 +228,17 @@ smoke-test-production:
       fi
     - |
       echo "🎉 All smoke tests passed!"
-  environment:
-    name: production
-    deployment_tier: production
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
 # Redeploy site when content is updated
-redeploy-on-content-update:
+# Build on content update (triggered/scheduled)
+build-content-update:
   stage: build
   timeout: 15 minutes
   before_script:
     - npm ci
   variables:
-    # These will be pulled from production environment-scoped variables in GitLab
     CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
     CONTENTFUL_ACCESS_TOKEN: $CONTENTFUL_ACCESS_TOKEN
     CONTENTFUL_PREVIEW_ACCESS_TOKEN: $CONTENTFUL_PREVIEW_ACCESS_TOKEN
@@ -324,15 +261,10 @@ redeploy-on-content-update:
       - .next/
       - public/
     expire_in: 1 day
-  environment:
-    name: production
-    deployment_tier: production
   rules:
-    # Triggered by pipeline trigger
+    # Triggered by pipeline trigger or scheduled pipeline
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
-    # Triggered by scheduled pipeline
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    - if: '$CI_BRANCH_NAME == "main"'
 
 # Deploy after content update
 deploy-content-update:
@@ -340,11 +272,10 @@ deploy-content-update:
   image: node:22
   timeout: 15 minutes
   needs:
-    - redeploy-on-content-update
+    - build-content-update
   before_script:
     - npm ci
   variables:
-    # Netlify and Contentful variables from production environment
     NETLIFY_SITE_ID: $NETLIFY_SITE_ID
     NETLIFY_AUTH_TOKEN: $NETLIFY_AUTH_TOKEN
     CONTENTFUL_SPACE_ID: $CONTENTFUL_SPACE_ID
@@ -353,7 +284,7 @@ deploy-content-update:
     CONTENTFUL_PREVIEW_SECRET: $CONTENTFUL_PREVIEW_SECRET
     CONTENTFUL_REVALIDATE_SECRET: $CONTENTFUL_REVALIDATE_SECRET
   script:
-    - echo "Deploying updated content to production..."
+    - echo "Deploying updated content..."
     - |
       OUTPUT=$(npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod --json)
       DEPLOYMENT_URL=$(echo $OUTPUT | jq -r .deploy_url)
@@ -363,13 +294,9 @@ deploy-content-update:
   artifacts:
     reports:
       dotenv: deploy.env
-  environment:
-    name: production
-    deployment_tier: production
   rules:
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    - if: '$CI_BRANCH_NAME == "main"'
 
 # Smoke test after content update deployment
 smoke-test-content-update:
@@ -403,9 +330,6 @@ smoke-test-content-update:
       fi
     - |
       echo "🎉 Content update smoke tests passed!"
-  environment:
-    name: production
-    deployment_tier: production
   rules:
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
