@@ -1,5 +1,5 @@
 # GitLab CI/CD Pipeline
-# Replicates the GitHub Actions workflow
+# Replicates the GitHub Actions workflow in gitlab
 
 # Global variables
 variables:
