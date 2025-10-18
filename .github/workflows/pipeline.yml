@@ -123,15 +123,44 @@ jobs:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 89ec456cc3b23d9e0f07de9431936f3f
           filename: coverage.json
-          label: Coverage
+          label: Jest Coverage
           message: ${{ steps.coverage.outputs.coverage }}%
           color: ${{ steps.coverage.outputs.color }}
 
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    
   build:
     name: Build project
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [lint, prettier, typecheck, test]
+    needs: [lint, prettier, typecheck, test, sonarcloud]
     if: github.event_name == 'pull_request' && ( github.base_ref == 'main' || github.base_ref == 'dev' )
     environment: ${{ github.base_ref == 'main' && 'production' || 'development' }}
 
