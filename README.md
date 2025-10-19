@@ -6,7 +6,6 @@
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Dan1m4D/89ec456cc3b23d9e0f07de9431936f3f/raw/coverage.json)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Dan1m4D_tdw-mp1-daniel-madureira&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Dan1m4D_tdw-mp1-daniel-madureira)
 
-
 The objective of this first mini-project is to develop a CI/CD pipeline over a Next blog that consumes contents from Contentful CMS. The blog looks like the follow:
 
 ![blog](readme_assets/image.png)
@@ -69,22 +68,23 @@ This project uses a **modified GitFlow** organization with strict branch protect
 
 Both `main` and `dev` branches are protected with the following rules:
 
-| Protection Rule | Description | Purpose |
-|----------------|-------------|---------|
-| **No Direct Pushes** | All changes must go through Pull Requests | Ensures code review and CI/CD validation |
-| **No Force Pushes** | Cannot rewrite branch history | Preserves commit history and prevents accidental overwrites |
-| **Require Signed Commits** | All commits must be GPG/SSH signed | Verifies commit authenticity and prevents impersonation |
-| **Status Checks Required** | All CI/CD tests must pass before merge | Ensures code quality, tests, linting, and type checking pass |
-| **Coverage Reporting** | Coverage reports shown in PR comments | Provides visibility into test coverage changes |
-| **GitHub Copilot Review** | Automated code review from Copilot | Catches potential issues, suggests improvements, and enforces best practices |
+| Protection Rule            | Description                               | Purpose                                                                      |
+| -------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------- |
+| **No Direct Pushes**       | All changes must go through Pull Requests | Ensures code review and CI/CD validation                                     |
+| **No Force Pushes**        | Cannot rewrite branch history             | Preserves commit history and prevents accidental overwrites                  |
+| **Require Signed Commits** | All commits must be GPG/SSH signed        | Verifies commit authenticity and prevents impersonation                      |
+| **Status Checks Required** | All CI/CD tests must pass before merge    | Ensures code quality, tests, linting, and type checking pass                 |
+| **Coverage Reporting**     | Coverage reports shown in PR comments     | Provides visibility into test coverage changes                               |
+| **GitHub Copilot Review**  | Automated code review from Copilot        | Catches potential issues, suggests improvements, and enforces best practices |
 
-| Main rules | Dev rules |
-|---|---|
-|![main rules pt.1](/readme_assets/main_1.png) ![main rules pt.2](/readme_assets/main_2.png) |![dev rules pt.1](/readme_assets/dev_1.png) ![dev rules pt.2](/readme_assets/dev_2.png) |
+| Main rules                                                                                  | Dev rules                                                                               |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| ![main rules pt.1](/readme_assets/main_1.png) ![main rules pt.2](/readme_assets/main_2.png) | ![dev rules pt.1](/readme_assets/dev_1.png) ![dev rules pt.2](/readme_assets/dev_2.png) |
 
 ### Why the Hotfix Branch Exists
 
 Since direct pushes to `main` and `dev` are blocked, the `hotfix` branch serves as a quick-response mechanism:
+
 1. Create `hotfix` branch from `main` (or `dev`)
 2. Make critical fix with proper commits
 3. Open PR to `main` (bypassing normal feature → dev → main flow)
@@ -103,36 +103,36 @@ gitGraph
     branch dev
     checkout dev
     commit id: "Setup dev environment"
-    
+
     branch feature/new-feature
     checkout feature/new-feature
     commit id: "Implement feature A"
     commit id: "Add tests for feature A"
     commit id: "Fix linting issues"
-    
+
     checkout dev
     merge feature/new-feature tag: "Feature A complete"
     commit id: "Update dev dependencies"
-    
+
     branch feature/another-feature
     checkout feature/another-feature
     commit id: "Implement feature B"
     commit id: "Add documentation"
-    
+
     checkout dev
     merge feature/another-feature tag: "Feature B complete"
-    
+
     checkout main
     merge dev tag: "v1.0.0 - Production release"
-    
+
     checkout main
     branch hotfix
     commit id: "Critical bug fix"
     commit id: "Update version"
-    
+
     checkout main
     merge hotfix tag: "v1.0.1 - Hotfix"
-    
+
     checkout dev
     merge hotfix id: "Sync hotfix to dev"
 ```
@@ -148,17 +148,17 @@ The CI/CD pipeline is implemented on **both GitHub Actions and GitLab CI/CD** fo
 
 Both platforms implement identical pipeline logic with platform-specific optimizations for performance and reliability:
 
-| Feature | GitHub Actions | GitLab CI/CD |
-|---------|---------------|--------------|
-| **Pipeline Config** | `.github/workflows/**` | `.gitlab-ci.yml` |
-| **Stages** | Jobs run in parallel/sequence | 5 explicit stages: setup → quality → build → deploy → test |
-| **Caching** | `actions/cache` + setup-node | Native GitLab cache with push/pull policies |
-| **Environments** | GitHub Environments (dev/production) | Not available in free tier (uses conditional rules instead) |
-| **Deployment** | GitHub Actions + Netlify | GitLab CI + Netlify CLI |
-| **Scheduled Pipelines** | Cron syntax in workflow file | Pipeline Schedules UI with cron expressions |
-| **Artifacts** | Automatic retention | Configurable expiration (1 day default) |
-| **Secrets Management** | GitHub Secrets | GitLab CI/CD Variables |
-| **Parallelization** | Matrix strategy + needs dependencies | Stage-based with parallel jobs |
+| Feature                 | GitHub Actions                       | GitLab CI/CD                                                |
+| ----------------------- | ------------------------------------ | ----------------------------------------------------------- |
+| **Pipeline Config**     | `.github/workflows/**`               | `.gitlab-ci.yml`                                            |
+| **Stages**              | Jobs run in parallel/sequence        | 5 explicit stages: setup → quality → build → deploy → test  |
+| **Caching**             | `actions/cache` + setup-node         | Native GitLab cache with push/pull policies                 |
+| **Environments**        | GitHub Environments (dev/production) | Not available in free tier (uses conditional rules instead) |
+| **Deployment**          | GitHub Actions + Netlify             | GitLab CI + Netlify CLI                                     |
+| **Scheduled Pipelines** | Cron syntax in workflow file         | Pipeline Schedules UI with cron expressions                 |
+| **Artifacts**           | Automatic retention                  | Configurable expiration (1 day default)                     |
+| **Secrets Management**  | GitHub Secrets                       | GitLab CI/CD Variables                                      |
+| **Parallelization**     | Matrix strategy + needs dependencies | Stage-based with parallel jobs                              |
 
 ### Lefthook: Local Git Hooks
 
@@ -167,14 +167,17 @@ Before code even reaches the remote CI/CD pipelines, Lefthook runs quality check
 #### Configuration
 
 **Pre-commit hooks** (run before each commit):
+
 - **ESLint**: Lints only staged files (`*.js`, `*.ts`, `*.jsx`, `*.tsx`)
 - **Prettier**: Auto-formats code to ensure consistent style
 - **Jest**: Runs tests with coverage only for changed test files
 
 **Pre-push hooks** (run before pushing to remote):
+
 - **npm audit**: Checks for dependency vulnerabilities (moderate level and above)
 
 This creates a **defense-in-depth quality strategy**:
+
 ```
 Local (Lefthook) → Remote (GitHub/GitLab) → Deployment (Netlify)
 ```
@@ -182,6 +185,7 @@ Local (Lefthook) → Remote (GitHub/GitLab) → Deployment (Netlify)
 ### Pipeline Workflow Diagram
 
 The following diagram shows the complete flow from local development to production deployment, including Lefthook integration:
+
 ```mermaid
 graph LR
   A[Local Commit] --> L[Lefthook Pre-commit]
@@ -215,7 +219,7 @@ graph LR
   K --> K1[Rebuild Site]
   K1 --> I2
   M[Scheduled Job: Trigger/Schedule] --> K1
-  
+
   style A fill:#BBDEFB,stroke:#1976D2,stroke-width:2px,color:#000
   style L fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px,color:#000
   style L1 fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px,color:#000
@@ -264,6 +268,7 @@ Main development and deployment workflow triggered by pushes and pull requests.
 | Smoke Test    | Verifies deployment is live and accessible               | After deployment       | 5 min   |
 
 **Key Features:**
+
 - Quality jobs run in parallel after Package Audit passes
 - Uses GitHub Environments (development/production) for environment-specific configuration
 - Implements `actions/setup-node` with automatic npm caching
@@ -280,9 +285,10 @@ Handles automatic site rebuilds triggered by Contentful CMS updates or scheduled
 | Trigger                | Description                                               | Actions                          |
 | ---------------------- | --------------------------------------------------------- | -------------------------------- |
 | **Contentful Webhook** | Triggered when content is published/updated in Contentful | Rebuild site → Deploy to Netlify |
-| **Scheduled Cron Job** | Runs daily at midnight UTC (`0 0 * * *`)          | Rebuild site → Deploy to Netlify |
+| **Scheduled Cron Job** | Runs daily at midnight UTC (`0 0 * * *`)                  | Rebuild site → Deploy to Netlify |
 
 **Key Features:**
+
 - **Immediate updates**: Content changes go live automatically without developer intervention
 - **Scheduled rebuilds**: Daily rebuilds ensure content freshness and catch missed webhook events
 - **Decoupled workflow**: Separate from main CI/CD pipeline to avoid unnecessary test runs
@@ -309,53 +315,53 @@ graph TB
         A[Setup Job] --> A1[npm ci --prefer-offline]
         A1 --> A2[Cache node_modules]
     end
-    
+
     subgraph "Stage 2: Quality - Parallel Execution"
         B1[Lint Job]
         B2[Prettier Job]
         B3[TypeCheck Job]
         B4[Test Job with Coverage]
     end
-    
+
     A2 --> B1 & B2 & B3 & B4
-    
+
     subgraph "Stage 3: Build"
         C1{MR Event?}
         C2[Build Job<br/>MR to dev/main]
         C3[Build Content Update<br/>Schedule/Trigger]
     end
-    
+
     B1 & B2 & B3 & B4 --> C1
     C1 -->|MR to dev/main| C2
     C1 -->|Schedule/Trigger| C3
-    
+
     subgraph "Stage 4: Deploy"
         D1[Deploy Job<br/>MR to main only]
         D2[Deploy Content Update<br/>Schedule/Trigger]
     end
-    
+
     C2 -->|MR to main| D1
     C3 --> D2
-    
+
     subgraph "Stage 5: Test"
         E1[Smoke Test<br/>Production]
         E2[Smoke Test<br/>Content Update]
     end
-    
+
     D1 --> E1
     D2 --> E2
-    
+
     subgraph "External Triggers"
         F1[Contentful Webhook]
         F2[GitLab Schedule<br/>Cron Job]
     end
-    
+
     F1 -.->|Trigger| C3
     F2 -.->|Schedule| C3
-    
+
     E1 --> G[✅ Deployment Complete]
     E2 --> G
-    
+
     style A fill:#81D4FA,stroke:#0288D1,stroke-width:2px,color:#000
     style B1 fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px,color:#000
     style B2 fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px,color:#000
@@ -372,13 +378,13 @@ graph TB
 
 #### Pipeline Jobs and Structure
 
-| Stage | Jobs | Description | Parallelization |
-|-------|------|-------------|-----------------|
-| **setup** | `setup` | Install dependencies once, create cache for all jobs | Single job |
-| **quality** | `lint`, `prettier`, `typecheck`, `test` | All quality checks run simultaneously | 4 parallel jobs |
-| **build** | `build`, `build-content-update` | Build Next.js application | Conditional based on trigger |
-| **deploy** | `deploy`, `deploy-content-update` | Deploy to Netlify production | Conditional (only for `main` merges) |
-| **test** | `smoke-test`, `smoke-test-content-update` | Post-deployment verification | Conditional after successful deploy |
+| Stage       | Jobs                                      | Description                                          | Parallelization                      |
+| ----------- | ----------------------------------------- | ---------------------------------------------------- | ------------------------------------ |
+| **setup**   | `setup`                                   | Install dependencies once, create cache for all jobs | Single job                           |
+| **quality** | `lint`, `prettier`, `typecheck`, `test`   | All quality checks run simultaneously                | 4 parallel jobs                      |
+| **build**   | `build`, `build-content-update`           | Build Next.js application                            | Conditional based on trigger         |
+| **deploy**  | `deploy`, `deploy-content-update`         | Deploy to Netlify production                         | Conditional (only for `main` merges) |
+| **test**    | `smoke-test`, `smoke-test-content-update` | Post-deployment verification                         | Conditional after successful deploy  |
 
 ![gitlab pipeline](/readme_assets/gl_pipeline.png)
 ![gitlab redeploy pipeline](/readme_assets/gl_redeploy.png)
@@ -388,31 +394,37 @@ graph TB
 To match the GitHub Actions workflow functionality while working within GitLab Free tier limitations, several adaptations were made:
 
 **1. Environment Variables Instead of Environments**
+
 - GitHub uses "Environments" (development/production) with scoped secrets
 - GitLab Free doesn't support environment scoping
 - Variables are defined once in GitLab Settings → CI/CD → Variables and accessed by all jobs
 
 **2. Stage-Based Parallelization**
+
 - GitHub uses `needs:` dependencies to control job order
 - GitLab uses explicit `stages:` with jobs in the same stage running in parallel
 
 **3. Optimized Caching Strategy**
+
 - GitHub: `actions/setup-node` handles caching automatically
 - GitLab: Manual cache configuration with `policy: pull/push`
 - **Setup job**: `policy: push` (creates cache)
 - **All other jobs**: `policy: pull` (reads from cache, no npm install needed)
 
 **4. Multi-Cache Configuration**
+
 ```yaml
 cache:
-  - key: node-modules-$CI_COMMIT_REF_SLUG  # Branch-specific node_modules
-  - key: next-cache-$CI_COMMIT_REF_SLUG    # Branch-specific Next.js build cache
+  - key: node-modules-$CI_COMMIT_REF_SLUG # Branch-specific node_modules
+  - key: next-cache-$CI_COMMIT_REF_SLUG # Branch-specific Next.js build cache
 ```
+
 - Separates dependency cache from build cache
 - Prevents cache conflicts between branches
 - 30-50% faster builds with warm cache
 
 **5. Content Update Triggers**
+
 - GitHub: Separate workflow file (`update_content.yml`) with webhook and schedule triggers
 - GitLab: Same pipeline, different jobs triggered by `$CI_PIPELINE_SOURCE`
   - `schedule`: GitLab Schedule (cron job)
@@ -421,30 +433,34 @@ cache:
 **6. Conditional Job Execution**
 All jobs use GitLab `rules:` to replicate GitHub's `if:` conditions:
 
-| GitHub Condition | GitLab Equivalent | Purpose |
-|-----------------|-------------------|---------|
-| `github.event_name == 'pull_request'` | `if: $CI_PIPELINE_SOURCE == "merge_request_event"` | Run only on MRs |
-| `github.base_ref == 'main'` | `if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"` | Deploy only to production |
-| `github.event_name == 'schedule'` | `if: $CI_PIPELINE_SOURCE == "schedule"` | Scheduled rebuilds |
+| GitHub Condition                      | GitLab Equivalent                                    | Purpose                   |
+| ------------------------------------- | ---------------------------------------------------- | ------------------------- |
+| `github.event_name == 'pull_request'` | `if: $CI_PIPELINE_SOURCE == "merge_request_event"`   | Run only on MRs           |
+| `github.base_ref == 'main'`           | `if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"` | Deploy only to production |
+| `github.event_name == 'schedule'`     | `if: $CI_PIPELINE_SOURCE == "schedule"`              | Scheduled rebuilds        |
 
 #### Key GitLab-Specific Features
 
 **1. Single Dependency Install**
+
 - Only `setup` job runs `npm ci --prefer-offline`
 - All other jobs pull cached `node_modules`
 - Traditional approach: Every job runs npm install (~30s × 8 jobs = 4 minutes wasted)
 - Optimized approach: Install once, reuse everywhere (~30s total)
 
 **2. Interruptible Pipelines**
+
 ```yaml
 default:
   interruptible: true
 ```
+
 - Automatically cancels running pipelines when new commits are pushed
 - Saves CI minutes and prevents queue buildup
 - Matches GitHub's **concurrency cancellation** behavior
 
 **3. Missing code quality analysis**
+
 - The SonarCloud code analysis job in Github Action wasn't replicated due to constrains in linking the 2 repositories to the same project
 
 ### Platform-Specific Optimizations
@@ -465,11 +481,13 @@ Both platforms implement performance optimizations tailored to their specific ca
    - Only enabled for PRs to `main` to catch issues early in dev builds
 
 3. **Concurrency Control**
+
    ```yaml
    concurrency:
      group: ${{ github.workflow }}-${{ github.ref }}
      cancel-in-progress: true
    ```
+
    - Cancels outdated pipeline runs automatically
    - Saves CI minutes and reduces queue times
 
@@ -481,11 +499,13 @@ Both platforms implement performance optimizations tailored to their specific ca
 #### GitLab CI/CD Optimizations
 
 1. **Multi-Stage Cache Strategy**
+
    ```yaml
    cache:
-     - key: node-$CI_COMMIT_REF_SLUG      # Dependencies
-     - key: next-$CI_COMMIT_REF_SLUG      # Build cache
+     - key: node-$CI_COMMIT_REF_SLUG # Dependencies
+     - key: next-$CI_COMMIT_REF_SLUG # Build cache
    ```
+
    - Separate caches for dependencies and builds
    - Per-branch caching prevents conflicts
    - Push/pull policies minimize cache writes
@@ -557,24 +577,26 @@ Both platforms include automatic coverage reporting on pull/merge requests:
 
 Both pipelines use conditional execution to optimize CI/CD resource usage:
 
-| Condition | GitHub Actions | GitLab CI/CD | Jobs Affected |
-|-----------|---------------|--------------|---------------|
-| **All pushes/commits** | `on: [push, pull_request]` | `if: $CI_PIPELINE_SOURCE =~ /merge_request\|push/` | Quality checks (lint, prettier, typecheck, test) |
-| **PR/MR to any branch** | `if: github.event_name == 'pull_request'` | `if: $CI_PIPELINE_SOURCE == "merge_request_event"` | Package Audit, SonarCloud |
-| **PR/MR to dev or main** | `if: contains(fromJSON('["main", "dev"]'), github.base_ref)` | `if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(main\|dev)$/` | Build job |
-| **PR/MR to main only** | `if: github.base_ref == 'main'` | `if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"` | Deploy, Smoke Test |
-| **Contentful webhook** | `on: repository_dispatch` | `if: $CI_PIPELINE_SOURCE == "trigger"` | Content update jobs |
-| **Scheduled job** | `on: schedule: '0 0 * * *'` | `if: $CI_PIPELINE_SOURCE == "schedule"` | Content update jobs |
+| Condition                | GitHub Actions                                               | GitLab CI/CD                                                  | Jobs Affected                                    |
+| ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------ |
+| **All pushes/commits**   | `on: [push, pull_request]`                                   | `if: $CI_PIPELINE_SOURCE =~ /merge_request\|push/`            | Quality checks (lint, prettier, typecheck, test) |
+| **PR/MR to any branch**  | `if: github.event_name == 'pull_request'`                    | `if: $CI_PIPELINE_SOURCE == "merge_request_event"`            | Package Audit, SonarCloud                        |
+| **PR/MR to dev or main** | `if: contains(fromJSON('["main", "dev"]'), github.base_ref)` | `if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(main\|dev)$/` | Build job                                        |
+| **PR/MR to main only**   | `if: github.base_ref == 'main'`                              | `if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"`          | Deploy, Smoke Test                               |
+| **Contentful webhook**   | `on: repository_dispatch`                                    | `if: $CI_PIPELINE_SOURCE == "trigger"`                        | Content update jobs                              |
+| **Scheduled job**        | `on: schedule: '0 0 * * *'`                                  | `if: $CI_PIPELINE_SOURCE == "schedule"`                       | Content update jobs                              |
 
 ### Environment Strategy
 
 **GitHub Actions:**
+
 - Uses GitHub Environments (development/production)
 - Development: PRs to `dev` - runs build validation, no deployment
 - Production: PRs to `main` - full build with caching, deploys to Netlify
 - Environment-specific secrets and variables
 
 **GitLab CI/CD:**
+
 - Uses conditional `rules:` (no environments in Free tier)
 - Build job runs for MRs to both `dev` and `main`
 - Deploy job runs only for MRs to `main`
@@ -585,6 +607,7 @@ Both pipelines use conditional execution to optimize CI/CD resource usage:
 The configuration setup for the **Contentful integration** with this project can be found in the original readme on the [original repository](https://github.com/TDW-2025/MP1) and the **demo** can be found [here](https://github.com/deca-ua/mp1-template-david/)
 
 ## Testing
+
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Dan1m4D/89ec456cc3b23d9e0f07de9431936f3f/raw/coverage.json)
 
 ### Overview
@@ -627,12 +650,14 @@ __tests__/
 ### Test Categories
 
 **1. Component Unit Tests (15 tests)**
+
 - Individual component testing with realistic props
 - Accessibility validation (semantic HTML, alt text, ARIA attributes)
 - Edge case handling (empty data, missing props)
 - Components: Avatar, Date, CoverImage, MoreStories, Layout
 
 **2. Page Tests (7 tests)**
+
 - Next.js 13+ App Router server component testing
 - Draft mode integration with Contentful CMS
 - Error handling (`notFound()` calls)
@@ -640,12 +665,14 @@ __tests__/
 - Pages: Home page, Post detail pages
 
 **3. Integration Tests (6 tests)**
+
 - Component interaction and data flow
 - Full page rendering with all sections
 - Navigation link validation
 - API mocking and error scenarios
 
 **4. Snapshot Tests (10 tests)**
+
 - Visual regression protection
 - UI consistency validation
 - Covers components, pages, and layouts
@@ -675,6 +702,7 @@ npm run test:coverage
 Coverage reports are generated in the `coverage/` directory in a JSON summary format.
 
 **Coverage is automatically:**
+
 - Generated during test runs
 - Posted as PR comments on GitHub
 - Tracked via badge in README
