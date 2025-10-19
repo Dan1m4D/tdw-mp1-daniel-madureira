@@ -41,13 +41,14 @@ default:
       - .npm/
     policy: push
 
-# Setup: Install dependencies and create cache
+# Setup: Install and audit dependencies, create cache
 setup:
   stage: setup
   <<: *node_cache_save
   timeout: 3 minutes
   script:
     - npm ci --prefer-offline
+    - npm audit --audit-level=moderate || true
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
