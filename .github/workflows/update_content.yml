@@ -3,8 +3,8 @@ name: Redeploy site on content update
 on:
   repository_dispatch:
     types: [publish-event]
-  schedule:
-    - cron: "0 0 * * *"
+  # schedule:
+  #   - cron: "0 0 * * *"
 
 jobs:
   redeploy:
