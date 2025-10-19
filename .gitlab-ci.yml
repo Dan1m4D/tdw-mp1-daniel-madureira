@@ -146,11 +146,6 @@ build:
   script:
     - npm ci --prefer-offline --no-audit
     - npm run build
-  artifacts:
-    paths:
-      - .next/
-      - public/
-    expire_in: 1 day
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main")'
 
@@ -170,9 +165,6 @@ deploy:
     - echo "Deploying to Netlify..."
     - npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod
     - echo "✅ Deployment complete!"
-  artifacts:
-    reports:
-      dotenv: deploy.env
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
 
@@ -227,11 +219,6 @@ build-content-update:
   script:
     - echo "Rebuilding site with updated content..."
     - npm run build
-  artifacts:
-    paths:
-      - .next/
-      - public/
-    expire_in: 1 day
   rules:
     # Triggered by pipeline trigger or scheduled pipeline
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
@@ -258,9 +245,6 @@ deploy-content-update:
     - echo "Deploying updated content to Netlify..."
     - npx netlify deploy --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod
     - echo "✅ Content update deployment complete!"
-  artifacts:
-    reports:
-      dotenv: deploy.env
   rules:
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
